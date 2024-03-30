@@ -7,7 +7,6 @@ fn main() {
         OpCode::Push(Value::Int32(5)),  // Push 5 onto the stack
         OpCode::Push(Value::Int32(10)), // Push 10 onto the stack
         OpCode::Add,                    // Add the top two values on the stack
-        // Other operations...
     ];
 
     vm.execute(&program);
