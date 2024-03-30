@@ -691,7 +691,7 @@ mod tests {
     fn test_program_serialization_deserialization() {
         // Define a sample program with a mix of opcodes, including a push with a value
         let original_program = vec![
-            OpCode::Push(Value::Int8(42)), // Sample value
+            OpCode::Push(Value::Int128(42)), // Sample value
             OpCode::Add,
             OpCode::Sub,
             OpCode::JmpIf,
