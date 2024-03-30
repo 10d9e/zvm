@@ -34,28 +34,28 @@ macro_rules! impl_ops {
                 fn $op(self, other: Self) -> Self {
                     match (self, other) {
                         (Value::Int8(a), Value::Int8(b)) => Value::Int8(a $op_token b),
-                        (Value::Int8(a), Value::Int16(b)) => Value::Int16(a as i16 $op_token b),
-                        (Value::Int8(a), Value::Int32(b)) => Value::Int32(a as i32 $op_token b),
-                        (Value::Int8(a), Value::Int64(b)) => Value::Int64(a as i64 $op_token b),
-                        (Value::Int8(a), Value::Int128(b)) => Value::Int128(a as i128 $op_token b),
+                        (Value::Int8(a), Value::Int16(b)) => Value::Int16((a as i16) $op_token b),
+                        (Value::Int8(a), Value::Int32(b)) => Value::Int32((a as i32) $op_token b),
+                        (Value::Int8(a), Value::Int64(b)) => Value::Int64((a as i64) $op_token b),
+                        (Value::Int8(a), Value::Int128(b)) => Value::Int128((a as i128) $op_token b),
 
                         (Value::Int16(a), Value::Int8(b)) => Value::Int16(a $op_token b as i16),
                         (Value::Int16(a), Value::Int16(b)) => Value::Int16(a $op_token b),
-                        (Value::Int16(a), Value::Int32(b)) => Value::Int32(a as i32 $op_token b),
-                        (Value::Int16(a), Value::Int64(b)) => Value::Int64(a as i64 $op_token b),
-                        (Value::Int16(a), Value::Int128(b)) => Value::Int128(a as i128 $op_token b),
+                        (Value::Int16(a), Value::Int32(b)) => Value::Int32((a as i32) $op_token b),
+                        (Value::Int16(a), Value::Int64(b)) => Value::Int64((a as i64) $op_token b),
+                        (Value::Int16(a), Value::Int128(b)) => Value::Int128((a as i128) $op_token b),
 
                         (Value::Int32(a), Value::Int8(b)) => Value::Int32(a $op_token b as i32),
                         (Value::Int32(a), Value::Int16(b)) => Value::Int32(a $op_token b as i32),
                         (Value::Int32(a), Value::Int32(b)) => Value::Int32(a $op_token b),
-                        (Value::Int32(a), Value::Int64(b)) => Value::Int64(a as i64 $op_token b),
-                        (Value::Int32(a), Value::Int128(b)) => Value::Int128(a as i128 $op_token b),
+                        (Value::Int32(a), Value::Int64(b)) => Value::Int64((a as i64) $op_token b),
+                        (Value::Int32(a), Value::Int128(b)) => Value::Int128((a as i128) $op_token b),
 
                         (Value::Int64(a), Value::Int8(b)) => Value::Int64(a $op_token b as i64),
                         (Value::Int64(a), Value::Int16(b)) => Value::Int64(a $op_token b as i64),
                         (Value::Int64(a), Value::Int32(b)) => Value::Int64(a $op_token b as i64),
                         (Value::Int64(a), Value::Int64(b)) => Value::Int64(a $op_token b),
-                        (Value::Int64(a), Value::Int128(b)) => Value::Int128(a as i128 $op_token b),
+                        (Value::Int64(a), Value::Int128(b)) => Value::Int128((a as i128) $op_token b),
 
                         (Value::Int128(a), Value::Int8(b)) => Value::Int128(a $op_token b as i128),
                         (Value::Int128(a), Value::Int16(b)) => Value::Int128(a $op_token b as i128),
@@ -87,7 +87,7 @@ impl_ops! {
     or, or_method, |;
     xor, xor_method, ^;
     shr, shr_method, >>;
-    shl, shl_method, <<
+    shl, shl_method, << 
 }
 
 pub struct VM {
