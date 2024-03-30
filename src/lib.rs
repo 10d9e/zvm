@@ -1,1 +1,1 @@
-pub mod fvm;
+pub mod vm;
