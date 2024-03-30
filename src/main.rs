@@ -9,4 +9,3 @@ fn main() {
     vm.execute(vec![OpCode::Mul]);
     println!("{:?}", vm.stack); // Expected output: [Value::Int16(1100)]
 }
-

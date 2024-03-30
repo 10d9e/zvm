@@ -1,11 +1,19 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpCode {
+    // arithmetic
     Add,
     Sub,
     Mul,
+    Div,
+
+    // bitwise operations
     And,
     Or,
     Xor,
+    ShiftRight,
+    ShiftLeft,
+
+    // comparison
     Eq,
     Neq,
     Lt,
@@ -14,6 +22,8 @@ pub enum OpCode {
     Gte,
     Min,
     Max,
+
+    // multiplex
     Mux,    
 }
 
@@ -52,9 +62,6 @@ macro_rules! impl_ops {
                         (Value::Int128(a), Value::Int32(b)) => Value::Int128(a $op_token b as i128),
                         (Value::Int128(a), Value::Int64(b)) => Value::Int128(a $op_token b as i128),
                         (Value::Int128(a), Value::Int128(b)) => Value::Int128(a $op_token b),
-
-                        // Implement other combinations and types as necessary
-                        _ => unimplemented!("Operation not implemented for this type combination"),
                     }
                 }
             )*
@@ -75,9 +82,12 @@ impl_ops! {
     add, add_method, +;
     sub, sub_method, -;
     mul, mul_method, *;
+    div, div_method, /;
     and, and_method, &;
     or, or_method, |;
-    xor, xor_method, ^
+    xor, xor_method, ^;
+    shr, shr_method, >>;
+    shl, shl_method, <<
 }
 
 pub struct VM {
@@ -114,6 +124,11 @@ impl VM {
                     let b = self.pop();
                     let a = self.pop();
                     self.push(a.mul(b));
+                },
+                OpCode::Div => {
+                    let b = self.pop();
+                    let a = self.pop();
+                    self.push(a.div(b));
                 },
                 OpCode::And => {
                     let b = self.pop();
@@ -176,6 +191,16 @@ impl VM {
                     let a = self.pop();
                     self.push(self.mux(a, b, c));
                 },
+                OpCode::ShiftRight => {
+                    let b = self.pop();
+                    let a = self.pop();
+                    self.push(a.shr(b));
+                },
+                OpCode::ShiftLeft => {
+                    let b = self.pop();
+                    let a = self.pop();
+                    self.push(a.shl(b));
+                },
             }
         }
     }
@@ -187,7 +212,6 @@ impl VM {
             Value::Int32(cond) => if cond != 0 { b } else { c },
             Value::Int64(cond) => if cond != 0 { b } else { c },
             Value::Int128(cond) => if cond != 0 { b } else { c },
-            _ => unimplemented!("Mux operation not supported for this type"),
         }
     }
 
@@ -296,5 +320,55 @@ mod tests {
         assert_eq!(vm.pop(), Value::Int8(20), "MUX did not select the correct value for false condition");
     }
 
+    #[test]
+    fn test_complex_compact() {
+        let mut vm = VM::new();
+
+        // Variables setup: a = 10, b = 5, c = 2
+        vm.push(Value::Int32(10)); // a
+        vm.push(Value::Int32(5));  // b
+        vm.push(Value::Int32(2));  // c
+
+        vm.execute(vec![
+            OpCode::Gt,   // Compare a > b
+            OpCode::Add,  // Placeholder for true branch (a + b)
+            OpCode::Sub,  // Placeholder for false branch (a - b)
+            OpCode::Mux,  // Decide which operation based on the comparison
+        ]);
+        assert_eq!(vm.pop(), Value::Int32(30));
+    }
+
+    #[test]
+    fn test_complex_operation_with_mux_without_div() {
+        let mut vm = VM::new();
+
+        // Variables setup: a = 10, b = 5, c = 2
+        vm.push(Value::Int32(10)); // a
+        vm.push(Value::Int32(5));  // b
+        vm.push(Value::Int32(2));  // c
+
+        // Perform 'a > b' and leave the result on the stack
+        vm.push(Value::Int32(10)); // Push 'a' again for comparison
+        vm.push(Value::Int32(5));  // Push 'b' again for comparison
+        vm.execute(vec![OpCode::Gt]); // 'a > b' comparison
+
+        // Path 1: Calculate (a + b) * c
+        vm.push(Value::Int32(10)); // Push 'a' again
+        vm.push(Value::Int32(5));  // Push 'b' again
+        vm.execute(vec![OpCode::Add]); // a + b
+        vm.push(Value::Int32(2));  // Push 'c' again
+        vm.execute(vec![OpCode::Mul]); // (a + b) * c
+
+        // Path 2: Calculate a - b (simpler operation for the 'else' path)
+        vm.push(Value::Int32(10)); // Push 'a' again
+        vm.push(Value::Int32(5));  // Push 'b' again
+        vm.execute(vec![OpCode::Sub]); // a - b
+
+        // Execute Mux to select based on 'a > b'
+        vm.execute(vec![OpCode::Mux]);
+
+        // Since 'a > b' is true, we expect the result of (a + b) * c => (10 + 5) * 2 = 30
+        assert_eq!(vm.pop(), Value::Int32(30));
+    }
 
 }
