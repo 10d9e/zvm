@@ -1,10 +1,20 @@
 use fvm::vm::{OpCode, Value, VM};
 
 fn main() {
-    // Example usage of the VM
     let mut vm = VM::new();
-    vm.push(Value::Int8(30));
-    vm.push(Value::Int16(40));
-    vm.execute(&[OpCode::Mul]);
-    println!("{:?}", vm.stack); // Expected output: [Value::Int16(1200)]
+
+    let program = vec![
+        OpCode::Push(Value::Int32(5)),  // Push 5 onto the stack
+        OpCode::Push(Value::Int32(10)), // Push 10 onto the stack
+        OpCode::Add,                    // Add the top two values on the stack
+        // Other operations...
+    ];
+
+    vm.execute(&program);
+
+    if let Some(result) = vm.stack.last() {
+        println!("Result of addition: {:?}", result);
+    } else {
+        println!("Error: Stack is empty.");
+    }
 }

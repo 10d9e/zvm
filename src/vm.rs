@@ -29,6 +29,10 @@ pub enum OpCode {
     // Jump
     Jmp,   // Jump to an instruction index unconditionally
     JmpIf, // Jump if the top of the stack is nonzero (true)
+
+    Push(Value), // Push now carries a Value with it
+    Dup, // Duplicate the top item on the stack
+    NoOp, // No operation
 }
 
 macro_rules! impl_ops {
@@ -144,6 +148,9 @@ impl VM {
         self.ip = 0; // Initialize IP at the start of execution
         while self.ip < code.len() {
             match code[self.ip] {
+                OpCode::Push(value) => {
+                    self.stack.push(value);
+                },
                 OpCode::Jmp => {
                     let target = self.pop().to_usize(); // Assuming a method to convert Value to usize
                     self.ip = target; // Set IP to target, adjusting for 0-based indexing if necessary
@@ -248,6 +255,14 @@ impl VM {
                     let a = self.pop();
                     self.push(a.shl(b));
                 }
+                OpCode::Dup => {
+                    let value = *self.stack.last().expect("Stack underflow on Dup");
+                    self.stack.push(value);
+                }
+                OpCode::NoOp => {
+                    // Do nothing
+                },
+
             }
             self.ip += 1; // Move to the next instruction unless jumped
         }
@@ -406,13 +421,13 @@ mod tests {
     }
 
     #[test]
-    fn test_complex_operation_with_mux_without_div() {
+    fn test_complex_operation_with_mux() {
         let mut vm = VM::new();
 
         // Variables setup: a = 10, b = 5, c = 2
-        vm.push(Value::Int32(10)); // a
-        vm.push(Value::Int32(5)); // b
         vm.push(Value::Int32(2)); // c
+        vm.push(Value::Int32(5)); // b
+        vm.push(Value::Int32(10)); // a
 
         // Perform 'a > b' and leave the result on the stack
         vm.push(Value::Int32(10)); // Push 'a' again for comparison
