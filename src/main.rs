@@ -1,9 +1,8 @@
 use fvm::vm::{OpCode, Value, VM};
-use tfhe::{generate_keys, set_server_key, ConfigBuilder, FheUint16, FheUint8};
 use tfhe::prelude::*;
+use tfhe::{generate_keys, set_server_key, ConfigBuilder, FheUint16, FheUint8};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    
     // Basic configuration to use homomorphic integers
     let config = ConfigBuilder::default().build();
 

@@ -1,10 +1,11 @@
+use serde::Deserialize;
+use serde::Serialize;
+use std::ops::Add;
+use std::ops::Sub;
 use tfhe::prelude::*;
 use tfhe::{FheBool, FheUint128, FheUint16, FheUint32, FheUint64, FheUint8};
 
-use std::ops::Add;
-use std::ops::Sub;
-
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum OpCode {
     // arithmetic
     Add,
@@ -105,9 +106,7 @@ impl OpCode {
             OpCode::Neg => vec![28],
         }
     }
-}
 
-impl OpCode {
     fn from_bytes(bytes: &[u8]) -> (Self, usize) {
         // Returns OpCode and bytes consumed
         match bytes[0] {
@@ -218,28 +217,7 @@ macro_rules! binary_op {
     };
 }
 
-/* 
-#[derive(Clone)]
-pub enum BoolValue {
-    FvmBool(FheBool),
-}
-
-impl FheEq<BoolValue> for BoolValue {
-    fn eq(&self, other: BoolValue) -> FheBool {
-        match (self, other) {
-            (BoolValue::FvmBool(a), BoolValue::FvmBool(b)) => a.eq(b),
-        }
-    }
-
-    fn ne(&self, other: BoolValue) -> FheBool {
-        match (self, other) {
-            (BoolValue::FvmBool(a), BoolValue::FvmBool(b)) => a.ne(b),
-        }
-    }
-}
-*/
-
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum Value {
     Bool(FheBool),
     Uint8(FheUint8),
@@ -349,38 +327,6 @@ impl FheOrd<Value> for Value {
     }
 }
 
-/*
-impl FheMin<Value> for Value {
-    type Output = Self;
-
-    fn min(&self, other: Value) -> Self {
-        match (self, other) {
-            (,Value::Uint8(a), ,Value::Uint8(b)) => ,Value::Uint8(a.min(b)),
-            (,Value::Uint16(a), ,Value::Uint16(b)) => ,Value::Uint16(a.min(b)),
-            (,Value::Uint32(a), ,Value::Uint32(b)) => ,Value::Uint32(a.min(b)),
-            (,Value::Uint64(a), ,Value::Uint64(b)) => ,Value::Uint64(a.min(b)),
-            (,Value::Uint128(a), ,Value::Uint128(b)) => ,Value::Uint128(a.min(b)),
-            _ => unimplemented!(),
-        }
-    }
-}
-
-impl FheMax<Value> for Value {
-    type Output = Self;
-
-    fn max(&self, other: Value) -> Self {
-        match (self, other) {
-            (,Value::Uint8(a), ,Value::Uint8(b)) => ,Value::Uint8(a.max(b)),
-            (,Value::Uint16(a), ,Value::Uint16(b)) => ,Value::Uint16(a.max(b)),
-            (,Value::Uint32(a), ,Value::Uint32(b)) => ,Value::Uint32(a.max(b)),
-            (,Value::Uint64(a), ,Value::Uint64(b)) => ,Value::Uint64(a.max(b)),
-            (,Value::Uint128(a), ,Value::Uint128(b)) => ,Value::Uint128(a.max(b)),
-            _ => unimplemented!(),
-        }
-    }
-}
-*/
-
 impl Value {
     pub fn as_bool(&self) -> Option<FheBool> {
         match self {
@@ -487,23 +433,23 @@ impl Value {
             }
             1 => {
                 let val: FheUint8 = bincode::deserialize(&bytes[1..]).unwrap();
-                (Value::Uint8(val), 3)
+                (Value::Uint8(val), bytes.len())
             }
             2 => {
                 let val: FheUint16 = bincode::deserialize(&bytes[1..]).unwrap();
-                (Value::Uint16(val), 3)
+                (Value::Uint16(val), bytes.len())
             }
             3 => {
                 let val: FheUint32 = bincode::deserialize(&bytes[1..]).unwrap();
-                (Value::Uint32(val), 3)
+                (Value::Uint32(val), bytes.len())
             }
             4 => {
                 let val: FheUint64 = bincode::deserialize(&bytes[1..]).unwrap();
-                (Value::Uint64(val), 3)
+                (Value::Uint64(val), bytes.len())
             }
             5 => {
                 let val: FheUint128 = bincode::deserialize(&bytes[1..]).unwrap();
-                (Value::Uint128(val), 3)
+                (Value::Uint128(val), bytes.len())
             }
             // Handle other Value variants...
             _ => unimplemented!(),
@@ -774,9 +720,7 @@ impl VM {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tfhe::{
-        generate_keys, set_server_key, ConfigBuilder, FheBool, FheUint8,
-    };
+    use tfhe::{generate_keys, set_server_key, ConfigBuilder, FheBool, FheUint8};
 
     #[test]
     fn test_add_i8_i16_promotion() -> Result<(), Box<dyn std::error::Error>> {
@@ -1469,6 +1413,108 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_program_serialization_deserialization() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+        // Define a sample program with a mix of opcodes, including a push with a value
+        let original_program = [
+            OpCode::Add,
+            OpCode::Sub,
+            OpCode::Mul,
+            OpCode::Div,
+            OpCode::And,
+            OpCode::Or,
+            OpCode::Xor,
+            OpCode::ShiftRight,
+            OpCode::ShiftLeft,
+            OpCode::Eq,
+            OpCode::Neq,
+            OpCode::Lt,
+            OpCode::Gt,
+            OpCode::Gte,
+            OpCode::Min,
+            OpCode::Max,
+            OpCode::Mux,
+            //OpCode::Jmp(42),
+            //OpCode::JmpIf(43),
+            OpCode::Push(Value::Uint8(FheUint8::try_encrypt(8_u8, &client_key)?)),
+            OpCode::Push(Value::Uint16(FheUint16::try_encrypt(16_u16, &client_key)?)),
+            OpCode::Push(Value::Uint32(FheUint32::try_encrypt(32_u32, &client_key)?)),
+            OpCode::Push(Value::Uint64(FheUint64::try_encrypt(64_u64, &client_key)?)),
+            OpCode::Push(Value::Uint128(FheUint128::try_encrypt(
+                128_u128,
+                &client_key,
+            )?)),
+            OpCode::Dup,
+            OpCode::NoOp,
+            OpCode::Inc,
+            OpCode::Dec,
+            OpCode::Load(77),
+            OpCode::Store(88),
+            OpCode::Swap,
+        ];
+
+        // Serialize the program into bytes
+        let serialized = serialize(&original_program);
+        //println!("Serialized program: {:?}", hex::encode(serialized.clone()));
+
+        // Deserialize the bytes back into opcodes
+        let deserialized_program = deserialize(&serialized);
+
+        // loop through deserialized program and assert each opcode matches original
+        for (i, opcode) in deserialized_program.iter().enumerate() {
+            assert_eq!(opcode.to_bytes(), original_program[i].to_bytes());
+        }
+
+        // Verify that the deserialized program matches the original
+        //assert_eq!(deserialized_program, original_program);
+        Ok(())
+    }
+
+    #[test]
+    fn test_program_serialization_deserialization_types() -> Result<(), Box<dyn std::error::Error>>
+    {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+        // Define a sample program with a mix of opcodes, including a push with a value
+        let original_program = [
+            OpCode::Push(Value::Uint8(FheUint8::try_encrypt(8_u8, &client_key)?)),
+            OpCode::Push(Value::Uint16(FheUint16::try_encrypt(16_u16, &client_key)?)),
+            OpCode::Push(Value::Uint32(FheUint32::try_encrypt(32_u32, &client_key)?)),
+            OpCode::Push(Value::Uint64(FheUint64::try_encrypt(64_u64, &client_key)?)),
+            OpCode::Push(Value::Uint128(FheUint128::try_encrypt(
+                128_u128,
+                &client_key,
+            )?)),
+        ];
+
+        // Serialize the program into bytes
+        let serialized = serialize(&original_program);
+        //println!("Serialized program: {:?}", hex::encode(serialized.clone()));
+
+        // Deserialize the bytes back into opcodes
+        let deserialized_program = deserialize(&serialized);
+
+        // loop through deserialized program and assert each opcode matches original
+        for (i, opcode) in deserialized_program.iter().enumerate() {
+            assert_eq!(opcode.to_bytes(), original_program[i].to_bytes());
+        }
+
+        // Verify that the deserialized program matches the original
+        //assert_eq!(deserialized_program, original_program);
+        Ok(())
+    }
     /*
     #[test]
     fn test_fibonacci() -> Result<(), Box<dyn std::error::Error>> {
