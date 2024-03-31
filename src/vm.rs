@@ -1,8 +1,10 @@
-use tfhe::prelude::*;
+use tfhe::{prelude::*, FheBool, FheInt32Id};
 use tfhe::{generate_keys, set_server_key, ConfigBuilder, FheUint32, FheUint8, FheUint16, FheUint64, FheUint128};
 use tfhe::FheUint;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+use std::ops::Add;
+
+#[derive(Clone)]
 pub enum OpCode {
     // arithmetic
     Add,
@@ -31,8 +33,10 @@ pub enum OpCode {
     Mux,
 
     // Jump
+    /*
     Jmp(i32),   // Jump to an instruction index unconditionally
     JmpIf(i32), // Jump if the top of the stack is nonzero (true)
+    */
 
     Push(Value), // Push now carries a Value with it
     Dup,         // Duplicate the top item on the stack
@@ -66,6 +70,7 @@ impl OpCode {
             OpCode::Min => vec![15],
             OpCode::Max => vec![16],
             OpCode::Mux => vec![17],
+            /*
             OpCode::Jmp(address) => {
                 let mut bytes = vec![18];
                 bytes.extend(address.to_le_bytes());
@@ -76,6 +81,7 @@ impl OpCode {
                 bytes.extend(address.to_le_bytes());
                 bytes
             }
+             */
             OpCode::NoOp => vec![20],
             OpCode::Dup => vec![21],
             OpCode::Push(value) => {
@@ -122,6 +128,7 @@ impl OpCode {
             15 => (OpCode::Min, 1),
             16 => (OpCode::Max, 1),
             17 => (OpCode::Mux, 1),
+            /* 
             18 => {
                 let address = i32::from_le_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]);
                 (OpCode::Jmp(address), 5)
@@ -130,6 +137,7 @@ impl OpCode {
                 let address = i32::from_le_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]);
                 (OpCode::JmpIf(address), 5)
             }
+            */
             20 => (OpCode::NoOp, 1),
             21 => (OpCode::Dup, 1),
             22 => {
@@ -160,39 +168,82 @@ macro_rules! impl_ops {
                 fn $op(self, other: Self) -> Self {
                     match (self, other) {
                         (Value::Int8(a), Value::Int8(b)) => Value::Int8(a $op_token b),
-                        (Value::Int8(a), Value::Int16(b)) => Value::Int16((a.try_into().unwrap()) $op_token b),
-                        (Value::Int8(a), Value::Int32(b)) => Value::Int32((a.try_into().unwrap()) $op_token b),
-                        (Value::Int8(a), Value::Int64(b)) => Value::Int64((a.try_into().unwrap()) $op_token b),
-                        (Value::Int8(a), Value::Int128(b)) => Value::Int128((a.try_into().unwrap()) $op_token b),
+                        (Value::Int8(a), Value::Int16(b)) => Value::Int16(FheUint16::cast_from(a) $op_token b),
+                        (Value::Int8(a), Value::Int32(b)) => Value::Int32(FheUint32::cast_from(a) $op_token b),
+                        (Value::Int8(a), Value::Int64(b)) => Value::Int64(FheUint64::cast_from(a) $op_token b),
+                        (Value::Int8(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) $op_token b),
 
-                        (Value::Int16(a), Value::Int8(b)) => Value::Int16(a $op_token b.try_into().unwrap()),
+                        (Value::Int16(a), Value::Int8(b)) => Value::Int16(a $op_token FheUint16::cast_from(b)),
                         (Value::Int16(a), Value::Int16(b)) => Value::Int16(a $op_token b),
-                        (Value::Int16(a), Value::Int32(b)) => Value::Int32((a.try_into().unwrap()) $op_token b),
-                        (Value::Int16(a), Value::Int64(b)) => Value::Int64((a.try_into().unwrap()) $op_token b),
-                        (Value::Int16(a), Value::Int128(b)) => Value::Int128((a.try_into().unwrap()) $op_token b),
-
-                        (Value::Int32(a), Value::Int8(b)) => Value::Int32(a $op_token b.try_into().unwrap()),
-                        (Value::Int32(a), Value::Int16(b)) => Value::Int32(a $op_token b.try_into().unwrap()),
+                        (Value::Int16(a), Value::Int32(b)) => Value::Int32(FheUint32::cast_from(a) $op_token b),
+                        (Value::Int16(a), Value::Int64(b)) => Value::Int64(FheUint64::cast_from(a) $op_token b),
+                        (Value::Int16(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) $op_token b),
+                        
+                        (Value::Int32(a), Value::Int8(b)) => Value::Int32(a $op_token FheUint32::cast_from(b)),
+                        (Value::Int32(a), Value::Int16(b)) => Value::Int32(a $op_token FheUint32::cast_from(b)),
                         (Value::Int32(a), Value::Int32(b)) => Value::Int32(a $op_token b),
-                        (Value::Int32(a), Value::Int64(b)) => Value::Int64((a.try_into().unwrap()) $op_token b),
-                        (Value::Int32(a), Value::Int128(b)) => Value::Int128((a.try_into().unwrap()) $op_token b),
+                        (Value::Int32(a), Value::Int64(b)) => Value::Int64(FheUint64::cast_from(a) $op_token b),
+                        (Value::Int32(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) $op_token b),
 
-                        (Value::Int64(a), Value::Int8(b)) => Value::Int64(a $op_token b.try_into().unwrap()),
-                        (Value::Int64(a), Value::Int16(b)) => Value::Int64(a $op_token b.try_into().unwrap()),
-                        (Value::Int64(a), Value::Int32(b)) => Value::Int64(a $op_token b.try_into().unwrap()),
+                        (Value::Int64(a), Value::Int8(b)) => Value::Int64(a $op_token FheUint64::cast_from(b)),
+                        (Value::Int64(a), Value::Int16(b)) => Value::Int64(a $op_token FheUint64::cast_from(b)),
+                        (Value::Int64(a), Value::Int32(b)) => Value::Int64(a $op_token FheUint64::cast_from(b)),
                         (Value::Int64(a), Value::Int64(b)) => Value::Int64(a $op_token b),
-                        (Value::Int64(a), Value::Int128(b)) => Value::Int128((a.try_into().unwrap()) $op_token b),
-
-                        (Value::Int128(a), Value::Int8(b)) => Value::Int128(a $op_token b.try_into().unwrap()),
-                        (Value::Int128(a), Value::Int16(b)) => Value::Int128(a $op_token b.try_into().unwrap()),
-                        (Value::Int128(a), Value::Int32(b)) => Value::Int128(a $op_token b.try_into().unwrap()),
-                        (Value::Int128(a), Value::Int64(b)) => Value::Int128(a $op_token b.try_into().unwrap()),
+                        (Value::Int64(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) $op_token b),
+                        
+                        (Value::Int128(a), Value::Int8(b)) => Value::Int128(a $op_token FheUint128::cast_from(b)),
+                        (Value::Int128(a), Value::Int16(b)) => Value::Int128(a $op_token FheUint128::cast_from(b)),
+                        (Value::Int128(a), Value::Int32(b)) => Value::Int128(a $op_token FheUint128::cast_from(b)),
+                        (Value::Int128(a), Value::Int64(b)) => Value::Int128(a $op_token FheUint128::cast_from(b)),
                         (Value::Int128(a), Value::Int128(b)) => Value::Int128(a $op_token b),
                     }
                 }
             )*
         }
     };
+}
+
+#[derive(Clone)]
+pub enum BoolValue {
+    FvmBool(FheBool),
+}
+
+impl FheEq<BoolValue> for BoolValue {
+    fn eq(&self, other: BoolValue) -> FheBool {
+        match (self, other) {
+            (BoolValue::FvmBool(a), BoolValue::FvmBool(b)) => a.eq(b),
+        }
+    }
+
+    fn ne(&self, other: BoolValue) -> FheBool {
+        match (self, other) {
+            (BoolValue::FvmBool(a), BoolValue::FvmBool(b)) => a.ne(b),
+        }
+    }
+}
+
+impl BoolValue {
+    fn to_bytes(&self) -> Vec<u8> {
+        match self {
+            BoolValue::FvmBool(val) => {
+                let mut bytes = vec![0];
+                bytes.extend(bincode::serialize(val).unwrap());
+                bytes
+            },
+        }
+    }
+
+    fn from_bytes(bytes: &[u8]) -> (Self, usize) {
+        // Returns Value and bytes consumed
+        match bytes[0] {
+            0 => {
+                let val:FheBool = bincode::deserialize(&bytes[1..]).unwrap();
+                (BoolValue::FvmBool(val), 3)
+            }
+            // Handle other Value variants...
+            _ => unimplemented!(),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -204,7 +255,108 @@ pub enum Value {
     Int128(FheUint128),
 }
 
+impl FheEq<Value> for Value {
+    fn eq(&self, other: Self) -> FheBool {
+        match (self, other) {
+            (Value::Int8(a), Value::Int8(b)) => a.eq(b),
+            (Value::Int16(a), Value::Int16(b)) => a.eq(b),
+            (Value::Int32(a), Value::Int32(b)) => a.eq(b),
+            (Value::Int64(a), Value::Int64(b)) => a.eq(b),
+            (Value::Int128(a), Value::Int128(b)) => a.eq(b),
+            _ => unimplemented!(),
+        }
+    }
+
+    fn ne(&self, other: Value) -> FheBool {
+        match (self, other) {
+            (Value::Int8(a), Value::Int8(b)) => a.ne(b),
+            (Value::Int16(a), Value::Int16(b)) => a.ne(b),
+            (Value::Int32(a), Value::Int32(b)) => a.ne(b),
+            (Value::Int64(a), Value::Int64(b)) => a.ne(b),
+            (Value::Int128(a), Value::Int128(b)) => a.ne(b),
+            _ => unimplemented!(),
+        }
+    }
+}
+
+impl FheOrd<Value> for Value {
+    fn lt(&self, other: Value) -> FheBool {
+        match (self, other) {
+            (Value::Int8(a), Value::Int8(b)) => a.lt(b),
+            (Value::Int16(a), Value::Int16(b)) => a.lt(b),
+            (Value::Int32(a), Value::Int32(b)) => a.lt(b),
+            (Value::Int64(a), Value::Int64(b)) => a.lt(b),
+            (Value::Int128(a), Value::Int128(b)) => a.lt(b),
+            _ => unimplemented!(),
+        }
+    }
+
+    fn le(&self, other: Value) -> FheBool {
+        match (self, other) {
+            (Value::Int8(a), Value::Int8(b)) => a.le(b),
+            (Value::Int16(a), Value::Int16(b)) => a.le(b),
+            (Value::Int32(a), Value::Int32(b)) => a.le(b),
+            (Value::Int64(a), Value::Int64(b)) => a.le(b),
+            (Value::Int128(a), Value::Int128(b)) => a.le(b),
+            _ => unimplemented!(),
+        }
+    }
+
+    fn gt(&self, other: Value) -> FheBool {
+        match (self, other) {
+            (Value::Int8(a), Value::Int8(b)) => a.gt(b),
+            (Value::Int16(a), Value::Int16(b)) => a.gt(b),
+            (Value::Int32(a), Value::Int32(b)) => a.gt(b),
+            (Value::Int64(a), Value::Int64(b)) => a.gt(b),
+            (Value::Int128(a), Value::Int128(b)) => a.gt(b),
+            _ => unimplemented!(),
+        }
+    }
+
+    fn ge(&self, other: Value) -> FheBool {
+        match (self, other) {
+            (Value::Int8(a), Value::Int8(b)) => a.ge(b),
+            (Value::Int16(a), Value::Int16(b)) => a.ge(b),
+            (Value::Int32(a), Value::Int32(b)) => a.ge(b),
+            (Value::Int64(a), Value::Int64(b)) => a.ge(b),
+            (Value::Int128(a), Value::Int128(b)) => a.ge(b),
+            _ => unimplemented!(),
+        }
+    }
+}
+
+impl FheMin<Value> for Value {
+    type Output = Self;
+
+    fn min(&self, other: Value) -> Self {
+        match (self, other) {
+            (Value::Int8(a), Value::Int8(b)) => Value::Int8(a.min(b)),
+            (Value::Int16(a), Value::Int16(b)) => Value::Int16(a.min(b)),
+            (Value::Int32(a), Value::Int32(b)) => Value::Int32(a.min(b)),
+            (Value::Int64(a), Value::Int64(b)) => Value::Int64(a.min(b)),
+            (Value::Int128(a), Value::Int128(b)) => Value::Int128(a.min(b)),
+            _ => unimplemented!(),
+        }
+    }
+}
+
+impl FheMax<Value> for Value {
+    type Output = Self;
+
+    fn max(&self, other: Value) -> Self {
+        match (self, other) {
+            (Value::Int8(a), Value::Int8(b)) => Value::Int8(a.max(b)),
+            (Value::Int16(a), Value::Int16(b)) => Value::Int16(a.max(b)),
+            (Value::Int32(a), Value::Int32(b)) => Value::Int32(a.max(b)),
+            (Value::Int64(a), Value::Int64(b)) => Value::Int64(a.max(b)),
+            (Value::Int128(a), Value::Int128(b)) => Value::Int128(a.max(b)),
+            _ => unimplemented!(),
+        }
+    }
+}
+
 impl Value {
+     /* 
     /// Converts the Value to a usize, if possible.
     pub fn to_usize(&self) -> usize {
         match *self {
@@ -215,80 +367,138 @@ impl Value {
             Value::Int128(val) => val as usize, // Note: Potential loss of data if val is too large
         }
     }
+    */
 
+    /*
     /// Converts the Value to a bool.
     /// Any non-zero value is considered true, and zero is considered false.
-    pub fn to_bool(&self) -> bool {
+    pub fn to_bool(&self) -> FheBool {
         match *self {
-            Value::Int8(val) => val != 0,
+            Value::Int8(val) => val.try_into().unwrap() != 0,
             Value::Int16(val) => val != 0,
             Value::Int32(val) => val != 0,
             Value::Int64(val) => val != 0,
             Value::Int128(val) => val != 0,
         }
     }
+     */
 }
 
 impl Value {
     fn to_bytes(&self) -> Vec<u8> {
         match self {
-            Value::Int8(val) => vec![0, *val as u8],
-            Value::Int16(val) => {
+            Value::Int8(val) => {
                 let mut bytes = vec![1];
-                bytes.extend(&val.to_le_bytes());
+                bytes.extend(bincode::serialize(val).unwrap());
+                bytes
+            },
+            Value::Int16(val) => {
+                let mut bytes = vec![2];
+                bytes.extend(bincode::serialize(val).unwrap());
                 bytes
             }
             Value::Int32(val) => {
-                let mut bytes = vec![2];
-                bytes.extend(&val.to_le_bytes());
+                let mut bytes = vec![3];
+                bytes.extend(bincode::serialize(val).unwrap());
                 bytes
             }
             Value::Int64(val) => {
-                let mut bytes = vec![3];
-                bytes.extend(&val.to_le_bytes());
+                let mut bytes = vec![4];
+                bytes.extend(bincode::serialize(val).unwrap());
                 bytes
             }
             Value::Int128(val) => {
-                let mut bytes = vec![4];
-                bytes.extend(&val.to_le_bytes());
+                let mut bytes = vec![5];
+                bytes.extend(bincode::serialize(val).unwrap());
                 bytes
             }
         }
     }
-}
 
-impl Value {
     fn from_bytes(bytes: &[u8]) -> (Self, usize) {
         // Returns Value and bytes consumed
         match bytes[0] {
-            0 => (Value::Int8(bytes[1] as i8), 2),
             1 => {
-                let val = i16::from_le_bytes([bytes[1], bytes[2]]);
-                (Value::Int16(val), 3)
+                let val:FheUint8 = bincode::deserialize(&bytes[1..]).unwrap();
+                (Value::Int8(val), 3)
             }
             2 => {
-                let val = i32::from_le_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]);
-                (Value::Int32(val), 5)
+                let val:FheUint16 = bincode::deserialize(&bytes[1..]).unwrap();
+                (Value::Int16(val), 3)
             }
             3 => {
-                let val = i64::from_le_bytes([
-                    bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8],
-                ]);
-                (Value::Int64(val), 9)
+                let val:FheUint32 = bincode::deserialize(&bytes[1..]).unwrap();
+                (Value::Int32(val), 3)
             }
             4 => {
-                let val = i128::from_le_bytes([
-                    bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8],
-                    bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15],
-                    bytes[16],
-                ]);
-                (Value::Int128(val), 17)
+                let val:FheUint64 = bincode::deserialize(&bytes[1..]).unwrap();
+                (Value::Int64(val), 3)
+            }
+            5 => {
+                let val:FheUint128 = bincode::deserialize(&bytes[1..]).unwrap();
+                (Value::Int128(val), 3)
             }
             // Handle other Value variants...
             _ => unimplemented!(),
         }
     }
 }
+
+impl Add<u8> for Value {
+    type Output = Self;
+
+    fn add(self, other: u8) -> Self {
+        match self {
+            Value::Int8(val) => Value::Int8(val + other),
+            Value::Int16(val) => Value::Int16(val + other as u16),
+            Value::Int32(val) => Value::Int32(val + other as u32),
+            Value::Int64(val) => Value::Int64(val + other as u64),
+            Value::Int128(val) => Value::Int128(val + other as u128),
+        }
+    }
+}
+
+/* 
+impl Add<Value> for Value {
+    type Output = Self;
+
+    fn add(self, other: Value) -> Self {
+        match (self, other) {
+            (Value::Int8(a), Value::Int8(b)) => Value::Int8(a + b),
+            (Value::Int8(a), Value::Int16(b)) => Value::Int16(FheUint16::cast_from(a) + b),
+            (Value::Int8(a), Value::Int32(b)) => Value::Int32(FheUint32::cast_from(a) + b),
+            (Value::Int8(a), Value::Int64(b)) => Value::Int64(FheUint64::cast_from(a) + b),
+            (Value::Int8(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) + b),
+
+            (Value::Int16(a), Value::Int8(b)) => Value::Int16(a + FheUint16::cast_from(b)),
+            (Value::Int16(a), Value::Int16(b)) => Value::Int16(a + b),
+            (Value::Int16(a), Value::Int32(b)) => Value::Int32(FheUint32::cast_from(a) + b),
+            (Value::Int16(a), Value::Int64(b)) => Value::Int64(FheUint64::cast_from(a) + b),
+            (Value::Int16(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) + b),
+            
+            (Value::Int32(a), Value::Int8(b)) => Value::Int32(a + FheUint32::cast_from(b)),
+            (Value::Int32(a), Value::Int16(b)) => Value::Int32(a + FheUint32::cast_from(b)),
+            (Value::Int32(a), Value::Int32(b)) => Value::Int32(a + b),
+            (Value::Int32(a), Value::Int64(b)) => Value::Int64(FheUint64::cast_from(a) + b),
+            (Value::Int32(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) + b),
+
+            (Value::Int64(a), Value::Int8(b)) => Value::Int64(a + FheUint64::cast_from(b)),
+            (Value::Int64(a), Value::Int16(b)) => Value::Int64(a + FheUint64::cast_from(b)),
+            (Value::Int64(a), Value::Int32(b)) => Value::Int64(a + FheUint64::cast_from(b)),
+            (Value::Int64(a), Value::Int64(b)) => Value::Int64(a + b),
+            (Value::Int64(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) + b),
+            
+            (Value::Int128(a), Value::Int8(b)) => Value::Int128(a + FheUint128::cast_from(b)),
+            (Value::Int128(a), Value::Int16(b)) => Value::Int128(a + FheUint128::cast_from(b)),
+            (Value::Int128(a), Value::Int32(b)) => Value::Int128(a + FheUint128::cast_from(b)),
+            (Value::Int128(a), Value::Int64(b)) => Value::Int128(a + FheUint128::cast_from(b)),
+            (Value::Int128(a), Value::Int128(b)) => Value::Int128(a + b),
+
+            _ => unimplemented!(),
+        }
+    }
+}
+*/
 
 impl_ops! {
     add, add_method, +;
@@ -347,6 +557,7 @@ impl VM {
                 OpCode::Push(value) => {
                     self.stack.push(value);
                 }
+                /*
                 OpCode::Jmp(target) => {
                     self.ip = target.try_into().unwrap(); // Set IP to target, adjusting for 0-based indexing if necessary
                     continue;
@@ -358,6 +569,7 @@ impl VM {
                         continue;
                     }
                 }
+                */
                 OpCode::Add => {
                     let b = self.pop();
                     let a = self.pop();
@@ -396,32 +608,38 @@ impl VM {
                 OpCode::Eq => {
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(Value::Int8((a == b) as i8));
+                    let val = Value::Int8(FheUint8::cast_from(a.eq(b)));
+                    self.push(val);
                 }
                 OpCode::Neq => {
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(Value::Int8((a != b) as i8));
+                    let val = Value::Int8(FheUint8::cast_from(a.ne(b)));
+                    self.push(val);
                 }
                 OpCode::Lt => {
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(Value::Int8((a < b) as i8));
+                    let val = Value::Int8(FheUint8::cast_from(a.lt(b)));
+                    self.push(val);
                 }
                 OpCode::Lte => {
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(Value::Int8((a <= b) as i8));
+                    let val = Value::Int8(FheUint8::cast_from(a.le(b)));
+                    self.push(val);
                 }
                 OpCode::Gt => {
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(Value::Int8((a > b) as i8));
+                    let val = Value::Int8(FheUint8::cast_from(a.gt(b)));
+                    self.push(val);
                 }
                 OpCode::Gte => {
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(Value::Int8((a >= b) as i8));
+                    let val = Value::Int8(FheUint8::cast_from(a.ge(b)));
+                    self.push(val);
                 }
                 OpCode::Min => {
                     let b = self.pop();
@@ -458,7 +676,7 @@ impl VM {
                 }
                 OpCode::Inc => {
                     let a = self.pop();
-                    self.push(a.add(Value::Int8(1)));
+                    self.push(a + 1u8);
                 }
                 OpCode::Dec => {
                     let a = self.pop();
@@ -493,11 +711,7 @@ impl VM {
     fn mux(&self, a: Value, b: Value, c: Value) -> Value {
         match a {
             Value::Int8(cond) => {
-                if cond != 0 {
-                    b
-                } else {
-                    c
-                }
+                cond.cmux(b, c)
             }
             Value::Int16(cond) => {
                 if cond != 0 {
