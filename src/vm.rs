@@ -1,4 +1,8 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use tfhe::prelude::*;
+use tfhe::{generate_keys, set_server_key, ConfigBuilder, FheUint32, FheUint8, FheUint16, FheUint64, FheUint128};
+use tfhe::FheUint;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OpCode {
     // arithmetic
     Add,
@@ -156,33 +160,33 @@ macro_rules! impl_ops {
                 fn $op(self, other: Self) -> Self {
                     match (self, other) {
                         (Value::Int8(a), Value::Int8(b)) => Value::Int8(a $op_token b),
-                        (Value::Int8(a), Value::Int16(b)) => Value::Int16((a as i16) $op_token b),
-                        (Value::Int8(a), Value::Int32(b)) => Value::Int32((a as i32) $op_token b),
-                        (Value::Int8(a), Value::Int64(b)) => Value::Int64((a as i64) $op_token b),
-                        (Value::Int8(a), Value::Int128(b)) => Value::Int128((a as i128) $op_token b),
+                        (Value::Int8(a), Value::Int16(b)) => Value::Int16((a.try_into().unwrap()) $op_token b),
+                        (Value::Int8(a), Value::Int32(b)) => Value::Int32((a.try_into().unwrap()) $op_token b),
+                        (Value::Int8(a), Value::Int64(b)) => Value::Int64((a.try_into().unwrap()) $op_token b),
+                        (Value::Int8(a), Value::Int128(b)) => Value::Int128((a.try_into().unwrap()) $op_token b),
 
-                        (Value::Int16(a), Value::Int8(b)) => Value::Int16(a $op_token b as i16),
+                        (Value::Int16(a), Value::Int8(b)) => Value::Int16(a $op_token b.try_into().unwrap()),
                         (Value::Int16(a), Value::Int16(b)) => Value::Int16(a $op_token b),
-                        (Value::Int16(a), Value::Int32(b)) => Value::Int32((a as i32) $op_token b),
-                        (Value::Int16(a), Value::Int64(b)) => Value::Int64((a as i64) $op_token b),
-                        (Value::Int16(a), Value::Int128(b)) => Value::Int128((a as i128) $op_token b),
+                        (Value::Int16(a), Value::Int32(b)) => Value::Int32((a.try_into().unwrap()) $op_token b),
+                        (Value::Int16(a), Value::Int64(b)) => Value::Int64((a.try_into().unwrap()) $op_token b),
+                        (Value::Int16(a), Value::Int128(b)) => Value::Int128((a.try_into().unwrap()) $op_token b),
 
-                        (Value::Int32(a), Value::Int8(b)) => Value::Int32(a $op_token b as i32),
-                        (Value::Int32(a), Value::Int16(b)) => Value::Int32(a $op_token b as i32),
+                        (Value::Int32(a), Value::Int8(b)) => Value::Int32(a $op_token b.try_into().unwrap()),
+                        (Value::Int32(a), Value::Int16(b)) => Value::Int32(a $op_token b.try_into().unwrap()),
                         (Value::Int32(a), Value::Int32(b)) => Value::Int32(a $op_token b),
-                        (Value::Int32(a), Value::Int64(b)) => Value::Int64((a as i64) $op_token b),
-                        (Value::Int32(a), Value::Int128(b)) => Value::Int128((a as i128) $op_token b),
+                        (Value::Int32(a), Value::Int64(b)) => Value::Int64((a.try_into().unwrap()) $op_token b),
+                        (Value::Int32(a), Value::Int128(b)) => Value::Int128((a.try_into().unwrap()) $op_token b),
 
-                        (Value::Int64(a), Value::Int8(b)) => Value::Int64(a $op_token b as i64),
-                        (Value::Int64(a), Value::Int16(b)) => Value::Int64(a $op_token b as i64),
-                        (Value::Int64(a), Value::Int32(b)) => Value::Int64(a $op_token b as i64),
+                        (Value::Int64(a), Value::Int8(b)) => Value::Int64(a $op_token b.try_into().unwrap()),
+                        (Value::Int64(a), Value::Int16(b)) => Value::Int64(a $op_token b.try_into().unwrap()),
+                        (Value::Int64(a), Value::Int32(b)) => Value::Int64(a $op_token b.try_into().unwrap()),
                         (Value::Int64(a), Value::Int64(b)) => Value::Int64(a $op_token b),
-                        (Value::Int64(a), Value::Int128(b)) => Value::Int128((a as i128) $op_token b),
+                        (Value::Int64(a), Value::Int128(b)) => Value::Int128((a.try_into().unwrap()) $op_token b),
 
-                        (Value::Int128(a), Value::Int8(b)) => Value::Int128(a $op_token b as i128),
-                        (Value::Int128(a), Value::Int16(b)) => Value::Int128(a $op_token b as i128),
-                        (Value::Int128(a), Value::Int32(b)) => Value::Int128(a $op_token b as i128),
-                        (Value::Int128(a), Value::Int64(b)) => Value::Int128(a $op_token b as i128),
+                        (Value::Int128(a), Value::Int8(b)) => Value::Int128(a $op_token b.try_into().unwrap()),
+                        (Value::Int128(a), Value::Int16(b)) => Value::Int128(a $op_token b.try_into().unwrap()),
+                        (Value::Int128(a), Value::Int32(b)) => Value::Int128(a $op_token b.try_into().unwrap()),
+                        (Value::Int128(a), Value::Int64(b)) => Value::Int128(a $op_token b.try_into().unwrap()),
                         (Value::Int128(a), Value::Int128(b)) => Value::Int128(a $op_token b),
                     }
                 }
@@ -191,13 +195,13 @@ macro_rules! impl_ops {
     };
 }
 
-#[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone)]
 pub enum Value {
-    Int8(i8),
-    Int16(i16),
-    Int32(i32),
-    Int64(i64),
-    Int128(i128),
+    Int8(FheUint8),
+    Int16(FheUint16),
+    Int32(FheUint32),
+    Int64(FheUint64),
+    Int128(FheUint128),
 }
 
 impl Value {
