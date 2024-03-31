@@ -1,19 +1,34 @@
 use fvm::vm::{OpCode, Value, VM};
+use tfhe::{generate_keys, set_server_key, ConfigBuilder, FheUint16, FheUint8};
+use tfhe::prelude::*;
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    
+    // Basic configuration to use homomorphic integers
+    let config = ConfigBuilder::default().build();
+
+    // Key generation
+    let (client_key, server_keys) = generate_keys(config);
+    // On the server side:
+    set_server_key(server_keys);
+
+    let a = 10u8;
+    let b = 5u16;
+
+    let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+    let enc_b = FheUint16::try_encrypt(b, &client_key)?;
+
     let mut vm = VM::new();
-
-    let program = vec![
-        OpCode::Push(Value::Int32(5)),  // Push 5 onto the stack
-        OpCode::Push(Value::Int32(10)), // Push 10 onto the stack
-        OpCode::Add,                    // Add the top two values on the stack
+    let bytecode = [
+        OpCode::Push(Value::Uint8(enc_a)),
+        OpCode::Push(Value::Uint16(enc_b)),
+        OpCode::Add,
     ];
+    vm.execute(&bytecode);
 
-    vm.execute(&program);
+    let encrypted_res = vm.pop();
+    let clear_res: u16 = encrypted_res.as_int16().unwrap().decrypt(&client_key);
+    assert_eq!(clear_res, 15);
 
-    if let Some(result) = vm.stack.last() {
-        println!("Result of addition: {:?}", result);
-    } else {
-        println!("Error: Stack is empty.");
-    }
+    Ok(())
 }

@@ -1,8 +1,8 @@
-use tfhe::{prelude::*, FheBool, FheInt32Id};
-use tfhe::{generate_keys, set_server_key, ConfigBuilder, FheUint32, FheUint8, FheUint16, FheUint64, FheUint128};
-use tfhe::FheUint;
+use tfhe::prelude::*;
+use tfhe::{FheBool, FheUint128, FheUint16, FheUint32, FheUint64, FheUint8};
 
 use std::ops::Add;
+use std::ops::Sub;
 
 #[derive(Clone)]
 pub enum OpCode {
@@ -11,6 +11,7 @@ pub enum OpCode {
     Sub,
     Mul,
     Div,
+    Neg,
 
     // bitwise operations
     And,
@@ -33,11 +34,10 @@ pub enum OpCode {
     Mux,
 
     // Jump
-    /*
+    /* TODO?
     Jmp(i32),   // Jump to an instruction index unconditionally
     JmpIf(i32), // Jump if the top of the stack is nonzero (true)
     */
-
     Push(Value), // Push now carries a Value with it
     Dup,         // Duplicate the top item on the stack
     NoOp,        // No operation
@@ -102,6 +102,7 @@ impl OpCode {
                 bytes
             }
             OpCode::Swap => vec![27],
+            OpCode::Neg => vec![28],
         }
     }
 }
@@ -128,7 +129,7 @@ impl OpCode {
             15 => (OpCode::Min, 1),
             16 => (OpCode::Max, 1),
             17 => (OpCode::Mux, 1),
-            /* 
+            /*
             18 => {
                 let address = i32::from_le_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]);
                 (OpCode::Jmp(address), 5)
@@ -155,47 +156,61 @@ impl OpCode {
                 (OpCode::Store(address), 5)
             }
             27 => (OpCode::Swap, 1),
+            28 => (OpCode::Neg, 1),
             // Handle other opcodes...
             _ => unimplemented!(),
         }
     }
 }
 
-macro_rules! impl_ops {
+macro_rules! binary_op {
     ($($op:ident, $op_method:ident, $op_token:tt);*) => {
         impl Value {
             $(
                 fn $op(self, other: Self) -> Self {
                     match (self, other) {
-                        (Value::Int8(a), Value::Int8(b)) => Value::Int8(a $op_token b),
-                        (Value::Int8(a), Value::Int16(b)) => Value::Int16(FheUint16::cast_from(a) $op_token b),
-                        (Value::Int8(a), Value::Int32(b)) => Value::Int32(FheUint32::cast_from(a) $op_token b),
-                        (Value::Int8(a), Value::Int64(b)) => Value::Int64(FheUint64::cast_from(a) $op_token b),
-                        (Value::Int8(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) $op_token b),
 
-                        (Value::Int16(a), Value::Int8(b)) => Value::Int16(a $op_token FheUint16::cast_from(b)),
-                        (Value::Int16(a), Value::Int16(b)) => Value::Int16(a $op_token b),
-                        (Value::Int16(a), Value::Int32(b)) => Value::Int32(FheUint32::cast_from(a) $op_token b),
-                        (Value::Int16(a), Value::Int64(b)) => Value::Int64(FheUint64::cast_from(a) $op_token b),
-                        (Value::Int16(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) $op_token b),
-                        
-                        (Value::Int32(a), Value::Int8(b)) => Value::Int32(a $op_token FheUint32::cast_from(b)),
-                        (Value::Int32(a), Value::Int16(b)) => Value::Int32(a $op_token FheUint32::cast_from(b)),
-                        (Value::Int32(a), Value::Int32(b)) => Value::Int32(a $op_token b),
-                        (Value::Int32(a), Value::Int64(b)) => Value::Int64(FheUint64::cast_from(a) $op_token b),
-                        (Value::Int32(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) $op_token b),
+                        (Value::Bool(_a), Value::Bool(_b)) => unimplemented!(),
+                        (Value::Bool(_a), Value::Uint8(_b)) => unimplemented!(),
+                        (Value::Bool(_a), Value::Uint16(_b)) => unimplemented!(),
+                        (Value::Bool(_a), Value::Uint32(_b)) => unimplemented!(),
+                        (Value::Bool(_a), Value::Uint64(_b)) => unimplemented!(),
+                        (Value::Bool(_a), Value::Uint128(_b)) => unimplemented!(),
 
-                        (Value::Int64(a), Value::Int8(b)) => Value::Int64(a $op_token FheUint64::cast_from(b)),
-                        (Value::Int64(a), Value::Int16(b)) => Value::Int64(a $op_token FheUint64::cast_from(b)),
-                        (Value::Int64(a), Value::Int32(b)) => Value::Int64(a $op_token FheUint64::cast_from(b)),
-                        (Value::Int64(a), Value::Int64(b)) => Value::Int64(a $op_token b),
-                        (Value::Int64(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) $op_token b),
-                        
-                        (Value::Int128(a), Value::Int8(b)) => Value::Int128(a $op_token FheUint128::cast_from(b)),
-                        (Value::Int128(a), Value::Int16(b)) => Value::Int128(a $op_token FheUint128::cast_from(b)),
-                        (Value::Int128(a), Value::Int32(b)) => Value::Int128(a $op_token FheUint128::cast_from(b)),
-                        (Value::Int128(a), Value::Int64(b)) => Value::Int128(a $op_token FheUint128::cast_from(b)),
-                        (Value::Int128(a), Value::Int128(b)) => Value::Int128(a $op_token b),
+                        (Value::Uint8(_a), Value::Bool(_b)) => unimplemented!(),
+                        (Value::Uint8(a), Value::Uint8(b)) => Value::Uint8(a $op_token b),
+                        (Value::Uint8(a), Value::Uint16(b)) => Value::Uint16(FheUint16::cast_from(a) $op_token b),
+                        (Value::Uint8(a), Value::Uint32(b)) => Value::Uint32(FheUint32::cast_from(a) $op_token b),
+                        (Value::Uint8(a), Value::Uint64(b)) => Value::Uint64(FheUint64::cast_from(a) $op_token b),
+                        (Value::Uint8(a), Value::Uint128(b)) => Value::Uint128(FheUint128::cast_from(a) $op_token b),
+
+                        (Value::Uint16(_a), Value::Bool(_b)) => unimplemented!(),
+                        (Value::Uint16(a), Value::Uint8(b)) => Value::Uint16(a $op_token FheUint16::cast_from(b)),
+                        (Value::Uint16(a), Value::Uint16(b)) => Value::Uint16(a $op_token b),
+                        (Value::Uint16(a), Value::Uint32(b)) => Value::Uint32(FheUint32::cast_from(a) $op_token b),
+                        (Value::Uint16(a), Value::Uint64(b)) => Value::Uint64(FheUint64::cast_from(a) $op_token b),
+                        (Value::Uint16(a), Value::Uint128(b)) => Value::Uint128(FheUint128::cast_from(a) $op_token b),
+
+                        (Value::Uint32(_a), Value::Bool(_b)) => unimplemented!(),
+                        (Value::Uint32(a), Value::Uint8(b)) => Value::Uint32(a $op_token FheUint32::cast_from(b)),
+                        (Value::Uint32(a), Value::Uint16(b)) => Value::Uint32(a $op_token FheUint32::cast_from(b)),
+                        (Value::Uint32(a), Value::Uint32(b)) => Value::Uint32(a $op_token b),
+                        (Value::Uint32(a), Value::Uint64(b)) => Value::Uint64(FheUint64::cast_from(a) $op_token b),
+                        (Value::Uint32(a), Value::Uint128(b)) => Value::Uint128(FheUint128::cast_from(a) $op_token b),
+
+                        (Value::Uint64(_a), Value::Bool(_b)) => unimplemented!(),
+                        (Value::Uint64(a), Value::Uint8(b)) => Value::Uint64(a $op_token FheUint64::cast_from(b)),
+                        (Value::Uint64(a), Value::Uint16(b)) => Value::Uint64(a $op_token FheUint64::cast_from(b)),
+                        (Value::Uint64(a), Value::Uint32(b)) => Value::Uint64(a $op_token FheUint64::cast_from(b)),
+                        (Value::Uint64(a), Value::Uint64(b)) => Value::Uint64(a $op_token b),
+                        (Value::Uint64(a), Value::Uint128(b)) => Value::Uint128(FheUint128::cast_from(a) $op_token b),
+
+                        (Value::Uint128(_a), Value::Bool(_b)) => unimplemented!(),
+                        (Value::Uint128(a), Value::Uint8(b)) => Value::Uint128(a $op_token FheUint128::cast_from(b)),
+                        (Value::Uint128(a), Value::Uint16(b)) => Value::Uint128(a $op_token FheUint128::cast_from(b)),
+                        (Value::Uint128(a), Value::Uint32(b)) => Value::Uint128(a $op_token FheUint128::cast_from(b)),
+                        (Value::Uint128(a), Value::Uint64(b)) => Value::Uint128(a $op_token FheUint128::cast_from(b)),
+                        (Value::Uint128(a), Value::Uint128(b)) => Value::Uint128(a $op_token b),
                     }
                 }
             )*
@@ -203,6 +218,7 @@ macro_rules! impl_ops {
     };
 }
 
+/* 
 #[derive(Clone)]
 pub enum BoolValue {
     FvmBool(FheBool),
@@ -221,59 +237,67 @@ impl FheEq<BoolValue> for BoolValue {
         }
     }
 }
-
-impl BoolValue {
-    fn to_bytes(&self) -> Vec<u8> {
-        match self {
-            BoolValue::FvmBool(val) => {
-                let mut bytes = vec![0];
-                bytes.extend(bincode::serialize(val).unwrap());
-                bytes
-            },
-        }
-    }
-
-    fn from_bytes(bytes: &[u8]) -> (Self, usize) {
-        // Returns Value and bytes consumed
-        match bytes[0] {
-            0 => {
-                let val:FheBool = bincode::deserialize(&bytes[1..]).unwrap();
-                (BoolValue::FvmBool(val), 3)
-            }
-            // Handle other Value variants...
-            _ => unimplemented!(),
-        }
-    }
-}
+*/
 
 #[derive(Clone)]
 pub enum Value {
-    Int8(FheUint8),
-    Int16(FheUint16),
-    Int32(FheUint32),
-    Int64(FheUint64),
-    Int128(FheUint128),
+    Bool(FheBool),
+    Uint8(FheUint8),
+    Uint16(FheUint16),
+    Uint32(FheUint32),
+    Uint64(FheUint64),
+    Uint128(FheUint128),
 }
 
 impl FheEq<Value> for Value {
     fn eq(&self, other: Self) -> FheBool {
         match (self, other) {
-            (Value::Int8(a), Value::Int8(b)) => a.eq(b),
-            (Value::Int16(a), Value::Int16(b)) => a.eq(b),
-            (Value::Int32(a), Value::Int32(b)) => a.eq(b),
-            (Value::Int64(a), Value::Int64(b)) => a.eq(b),
-            (Value::Int128(a), Value::Int128(b)) => a.eq(b),
+            (Value::Bool(a), Value::Bool(b)) => a.eq(b),
+            (Value::Uint8(a), Value::Uint8(b)) => a.eq(b),
+            (Value::Uint16(a), Value::Uint16(b)) => a.eq(b),
+            (Value::Uint32(a), Value::Uint32(b)) => a.eq(b),
+            (Value::Uint64(a), Value::Uint64(b)) => a.eq(b),
+            (Value::Uint128(a), Value::Uint128(b)) => a.eq(b),
             _ => unimplemented!(),
         }
     }
 
     fn ne(&self, other: Value) -> FheBool {
         match (self, other) {
-            (Value::Int8(a), Value::Int8(b)) => a.ne(b),
-            (Value::Int16(a), Value::Int16(b)) => a.ne(b),
-            (Value::Int32(a), Value::Int32(b)) => a.ne(b),
-            (Value::Int64(a), Value::Int64(b)) => a.ne(b),
-            (Value::Int128(a), Value::Int128(b)) => a.ne(b),
+            (Value::Bool(a), Value::Bool(b)) => a.ne(b),
+            (Value::Uint8(a), Value::Uint8(b)) => a.ne(b),
+            (Value::Uint16(a), Value::Uint16(b)) => a.ne(b),
+            (Value::Uint32(a), Value::Uint32(b)) => a.ne(b),
+            (Value::Uint64(a), Value::Uint64(b)) => a.ne(b),
+            (Value::Uint128(a), Value::Uint128(b)) => a.ne(b),
+            _ => unimplemented!(),
+        }
+    }
+}
+
+impl FheMax<Value> for Value {
+    type Output = Value;
+    fn max(&self, other: Value) -> Value {
+        match (self, other) {
+            (Value::Uint8(a), Value::Uint8(b)) => Value::Uint8(a.max(&b)),
+            (Value::Uint16(a), Value::Uint16(b)) => Value::Uint16(a.max(&b)),
+            (Value::Uint32(a), Value::Uint32(b)) => Value::Uint32(a.max(&b)),
+            (Value::Uint64(a), Value::Uint64(b)) => Value::Uint64(a.max(&b)),
+            (Value::Uint128(a), Value::Uint128(b)) => Value::Uint128(a.max(&b)),
+            _ => unimplemented!(),
+        }
+    }
+}
+
+impl FheMin<Value> for Value {
+    type Output = Value;
+    fn min(&self, other: Value) -> Value {
+        match (self, other) {
+            (Value::Uint8(a), Value::Uint8(b)) => Value::Uint8(a.min(&b)),
+            (Value::Uint16(a), Value::Uint16(b)) => Value::Uint16(a.min(&b)),
+            (Value::Uint32(a), Value::Uint32(b)) => Value::Uint32(a.min(&b)),
+            (Value::Uint64(a), Value::Uint64(b)) => Value::Uint64(a.min(&b)),
+            (Value::Uint128(a), Value::Uint128(b)) => Value::Uint128(a.min(&b)),
             _ => unimplemented!(),
         }
     }
@@ -282,59 +306,60 @@ impl FheEq<Value> for Value {
 impl FheOrd<Value> for Value {
     fn lt(&self, other: Value) -> FheBool {
         match (self, other) {
-            (Value::Int8(a), Value::Int8(b)) => a.lt(b),
-            (Value::Int16(a), Value::Int16(b)) => a.lt(b),
-            (Value::Int32(a), Value::Int32(b)) => a.lt(b),
-            (Value::Int64(a), Value::Int64(b)) => a.lt(b),
-            (Value::Int128(a), Value::Int128(b)) => a.lt(b),
+            (Value::Uint8(a), Value::Uint8(b)) => a.lt(b),
+            (Value::Uint16(a), Value::Uint16(b)) => a.lt(b),
+            (Value::Uint32(a), Value::Uint32(b)) => a.lt(b),
+            (Value::Uint64(a), Value::Uint64(b)) => a.lt(b),
+            (Value::Uint128(a), Value::Uint128(b)) => a.lt(b),
             _ => unimplemented!(),
         }
     }
 
     fn le(&self, other: Value) -> FheBool {
         match (self, other) {
-            (Value::Int8(a), Value::Int8(b)) => a.le(b),
-            (Value::Int16(a), Value::Int16(b)) => a.le(b),
-            (Value::Int32(a), Value::Int32(b)) => a.le(b),
-            (Value::Int64(a), Value::Int64(b)) => a.le(b),
-            (Value::Int128(a), Value::Int128(b)) => a.le(b),
+            (Value::Uint8(a), Value::Uint8(b)) => a.le(b),
+            (Value::Uint16(a), Value::Uint16(b)) => a.le(b),
+            (Value::Uint32(a), Value::Uint32(b)) => a.le(b),
+            (Value::Uint64(a), Value::Uint64(b)) => a.le(b),
+            (Value::Uint128(a), Value::Uint128(b)) => a.le(b),
             _ => unimplemented!(),
         }
     }
 
     fn gt(&self, other: Value) -> FheBool {
         match (self, other) {
-            (Value::Int8(a), Value::Int8(b)) => a.gt(b),
-            (Value::Int16(a), Value::Int16(b)) => a.gt(b),
-            (Value::Int32(a), Value::Int32(b)) => a.gt(b),
-            (Value::Int64(a), Value::Int64(b)) => a.gt(b),
-            (Value::Int128(a), Value::Int128(b)) => a.gt(b),
+            (Value::Uint8(a), Value::Uint8(b)) => a.gt(b),
+            (Value::Uint16(a), Value::Uint16(b)) => a.gt(b),
+            (Value::Uint32(a), Value::Uint32(b)) => a.gt(b),
+            (Value::Uint64(a), Value::Uint64(b)) => a.gt(b),
+            (Value::Uint128(a), Value::Uint128(b)) => a.gt(b),
             _ => unimplemented!(),
         }
     }
 
     fn ge(&self, other: Value) -> FheBool {
         match (self, other) {
-            (Value::Int8(a), Value::Int8(b)) => a.ge(b),
-            (Value::Int16(a), Value::Int16(b)) => a.ge(b),
-            (Value::Int32(a), Value::Int32(b)) => a.ge(b),
-            (Value::Int64(a), Value::Int64(b)) => a.ge(b),
-            (Value::Int128(a), Value::Int128(b)) => a.ge(b),
+            (Value::Uint8(a), Value::Uint8(b)) => a.ge(b),
+            (Value::Uint16(a), Value::Uint16(b)) => a.ge(b),
+            (Value::Uint32(a), Value::Uint32(b)) => a.ge(b),
+            (Value::Uint64(a), Value::Uint64(b)) => a.ge(b),
+            (Value::Uint128(a), Value::Uint128(b)) => a.ge(b),
             _ => unimplemented!(),
         }
     }
 }
 
+/*
 impl FheMin<Value> for Value {
     type Output = Self;
 
     fn min(&self, other: Value) -> Self {
         match (self, other) {
-            (Value::Int8(a), Value::Int8(b)) => Value::Int8(a.min(b)),
-            (Value::Int16(a), Value::Int16(b)) => Value::Int16(a.min(b)),
-            (Value::Int32(a), Value::Int32(b)) => Value::Int32(a.min(b)),
-            (Value::Int64(a), Value::Int64(b)) => Value::Int64(a.min(b)),
-            (Value::Int128(a), Value::Int128(b)) => Value::Int128(a.min(b)),
+            (,Value::Uint8(a), ,Value::Uint8(b)) => ,Value::Uint8(a.min(b)),
+            (,Value::Uint16(a), ,Value::Uint16(b)) => ,Value::Uint16(a.min(b)),
+            (,Value::Uint32(a), ,Value::Uint32(b)) => ,Value::Uint32(a.min(b)),
+            (,Value::Uint64(a), ,Value::Uint64(b)) => ,Value::Uint64(a.min(b)),
+            (,Value::Uint128(a), ,Value::Uint128(b)) => ,Value::Uint128(a.min(b)),
             _ => unimplemented!(),
         }
     }
@@ -345,69 +370,107 @@ impl FheMax<Value> for Value {
 
     fn max(&self, other: Value) -> Self {
         match (self, other) {
-            (Value::Int8(a), Value::Int8(b)) => Value::Int8(a.max(b)),
-            (Value::Int16(a), Value::Int16(b)) => Value::Int16(a.max(b)),
-            (Value::Int32(a), Value::Int32(b)) => Value::Int32(a.max(b)),
-            (Value::Int64(a), Value::Int64(b)) => Value::Int64(a.max(b)),
-            (Value::Int128(a), Value::Int128(b)) => Value::Int128(a.max(b)),
+            (,Value::Uint8(a), ,Value::Uint8(b)) => ,Value::Uint8(a.max(b)),
+            (,Value::Uint16(a), ,Value::Uint16(b)) => ,Value::Uint16(a.max(b)),
+            (,Value::Uint32(a), ,Value::Uint32(b)) => ,Value::Uint32(a.max(b)),
+            (,Value::Uint64(a), ,Value::Uint64(b)) => ,Value::Uint64(a.max(b)),
+            (,Value::Uint128(a), ,Value::Uint128(b)) => ,Value::Uint128(a.max(b)),
             _ => unimplemented!(),
         }
     }
 }
+*/
 
 impl Value {
-     /* 
-    /// Converts the Value to a usize, if possible.
-    pub fn to_usize(&self) -> usize {
-        match *self {
-            Value::Int8(val) => val as usize,
-            Value::Int16(val) => val as usize,
-            Value::Int32(val) => val as usize,
-            Value::Int64(val) => val as usize,
-            Value::Int128(val) => val as usize, // Note: Potential loss of data if val is too large
+    pub fn as_bool(&self) -> Option<FheBool> {
+        match self {
+            Value::Bool(value) => Some(value.clone()),
+            _ => None,
         }
     }
-    */
 
-    /*
-    /// Converts the Value to a bool.
-    /// Any non-zero value is considered true, and zero is considered false.
-    pub fn to_bool(&self) -> FheBool {
-        match *self {
-            Value::Int8(val) => val.try_into().unwrap() != 0,
-            Value::Int16(val) => val != 0,
-            Value::Int32(val) => val != 0,
-            Value::Int64(val) => val != 0,
-            Value::Int128(val) => val != 0,
+    pub fn as_int8(&self) -> Option<&FheUint8> {
+        match self {
+            Value::Uint8(value) => Some(value),
+            _ => None,
         }
     }
-     */
+
+    pub fn as_int16(&self) -> Option<&FheUint16> {
+        match self {
+            Value::Uint16(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn as_int32(&self) -> Option<&FheUint32> {
+        match self {
+            Value::Uint32(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn as_int64(&self) -> Option<&FheUint64> {
+        match self {
+            Value::Uint64(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn as_int128(&self) -> Option<&FheUint128> {
+        match self {
+            Value::Uint128(value) => Some(value),
+            _ => None,
+        }
+    }
+}
+
+trait Neg {
+    fn neg(&self) -> Self;
+}
+
+impl Neg for Value {
+    fn neg(&self) -> Self {
+        match self {
+            Value::Bool(val) => Value::Bool(!val),
+            Value::Uint8(val) => Value::Uint8(-val),
+            Value::Uint16(val) => Value::Uint16(-val),
+            Value::Uint32(val) => Value::Uint32(-val),
+            Value::Uint64(val) => Value::Uint64(-val),
+            Value::Uint128(val) => Value::Uint128(-val),
+        }
+    }
 }
 
 impl Value {
     fn to_bytes(&self) -> Vec<u8> {
         match self {
-            Value::Int8(val) => {
+            Value::Bool(val) => {
+                let mut bytes = vec![0];
+                bytes.extend(bincode::serialize(val).unwrap());
+                bytes
+            }
+            Value::Uint8(val) => {
                 let mut bytes = vec![1];
                 bytes.extend(bincode::serialize(val).unwrap());
                 bytes
-            },
-            Value::Int16(val) => {
+            }
+            Value::Uint16(val) => {
                 let mut bytes = vec![2];
                 bytes.extend(bincode::serialize(val).unwrap());
                 bytes
             }
-            Value::Int32(val) => {
+            Value::Uint32(val) => {
                 let mut bytes = vec![3];
                 bytes.extend(bincode::serialize(val).unwrap());
                 bytes
             }
-            Value::Int64(val) => {
+            Value::Uint64(val) => {
                 let mut bytes = vec![4];
                 bytes.extend(bincode::serialize(val).unwrap());
                 bytes
             }
-            Value::Int128(val) => {
+            Value::Uint128(val) => {
                 let mut bytes = vec![5];
                 bytes.extend(bincode::serialize(val).unwrap());
                 bytes
@@ -418,25 +481,29 @@ impl Value {
     fn from_bytes(bytes: &[u8]) -> (Self, usize) {
         // Returns Value and bytes consumed
         match bytes[0] {
+            0 => {
+                let val: FheBool = bincode::deserialize(&bytes[1..]).unwrap();
+                (Value::Bool(val), 1)
+            }
             1 => {
-                let val:FheUint8 = bincode::deserialize(&bytes[1..]).unwrap();
-                (Value::Int8(val), 3)
+                let val: FheUint8 = bincode::deserialize(&bytes[1..]).unwrap();
+                (Value::Uint8(val), 3)
             }
             2 => {
-                let val:FheUint16 = bincode::deserialize(&bytes[1..]).unwrap();
-                (Value::Int16(val), 3)
+                let val: FheUint16 = bincode::deserialize(&bytes[1..]).unwrap();
+                (Value::Uint16(val), 3)
             }
             3 => {
-                let val:FheUint32 = bincode::deserialize(&bytes[1..]).unwrap();
-                (Value::Int32(val), 3)
+                let val: FheUint32 = bincode::deserialize(&bytes[1..]).unwrap();
+                (Value::Uint32(val), 3)
             }
             4 => {
-                let val:FheUint64 = bincode::deserialize(&bytes[1..]).unwrap();
-                (Value::Int64(val), 3)
+                let val: FheUint64 = bincode::deserialize(&bytes[1..]).unwrap();
+                (Value::Uint64(val), 3)
             }
             5 => {
-                let val:FheUint128 = bincode::deserialize(&bytes[1..]).unwrap();
-                (Value::Int128(val), 3)
+                let val: FheUint128 = bincode::deserialize(&bytes[1..]).unwrap();
+                (Value::Uint128(val), 3)
             }
             // Handle other Value variants...
             _ => unimplemented!(),
@@ -449,58 +516,32 @@ impl Add<u8> for Value {
 
     fn add(self, other: u8) -> Self {
         match self {
-            Value::Int8(val) => Value::Int8(val + other),
-            Value::Int16(val) => Value::Int16(val + other as u16),
-            Value::Int32(val) => Value::Int32(val + other as u32),
-            Value::Int64(val) => Value::Int64(val + other as u64),
-            Value::Int128(val) => Value::Int128(val + other as u128),
+            Value::Bool(_val) => unimplemented!(),
+            Value::Uint8(val) => Value::Uint8(val + other),
+            Value::Uint16(val) => Value::Uint16(val + other as u16),
+            Value::Uint32(val) => Value::Uint32(val + other as u32),
+            Value::Uint64(val) => Value::Uint64(val + other as u64),
+            Value::Uint128(val) => Value::Uint128(val + other as u128),
         }
     }
 }
 
-/* 
-impl Add<Value> for Value {
+impl Sub<u8> for Value {
     type Output = Self;
 
-    fn add(self, other: Value) -> Self {
-        match (self, other) {
-            (Value::Int8(a), Value::Int8(b)) => Value::Int8(a + b),
-            (Value::Int8(a), Value::Int16(b)) => Value::Int16(FheUint16::cast_from(a) + b),
-            (Value::Int8(a), Value::Int32(b)) => Value::Int32(FheUint32::cast_from(a) + b),
-            (Value::Int8(a), Value::Int64(b)) => Value::Int64(FheUint64::cast_from(a) + b),
-            (Value::Int8(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) + b),
-
-            (Value::Int16(a), Value::Int8(b)) => Value::Int16(a + FheUint16::cast_from(b)),
-            (Value::Int16(a), Value::Int16(b)) => Value::Int16(a + b),
-            (Value::Int16(a), Value::Int32(b)) => Value::Int32(FheUint32::cast_from(a) + b),
-            (Value::Int16(a), Value::Int64(b)) => Value::Int64(FheUint64::cast_from(a) + b),
-            (Value::Int16(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) + b),
-            
-            (Value::Int32(a), Value::Int8(b)) => Value::Int32(a + FheUint32::cast_from(b)),
-            (Value::Int32(a), Value::Int16(b)) => Value::Int32(a + FheUint32::cast_from(b)),
-            (Value::Int32(a), Value::Int32(b)) => Value::Int32(a + b),
-            (Value::Int32(a), Value::Int64(b)) => Value::Int64(FheUint64::cast_from(a) + b),
-            (Value::Int32(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) + b),
-
-            (Value::Int64(a), Value::Int8(b)) => Value::Int64(a + FheUint64::cast_from(b)),
-            (Value::Int64(a), Value::Int16(b)) => Value::Int64(a + FheUint64::cast_from(b)),
-            (Value::Int64(a), Value::Int32(b)) => Value::Int64(a + FheUint64::cast_from(b)),
-            (Value::Int64(a), Value::Int64(b)) => Value::Int64(a + b),
-            (Value::Int64(a), Value::Int128(b)) => Value::Int128(FheUint128::cast_from(a) + b),
-            
-            (Value::Int128(a), Value::Int8(b)) => Value::Int128(a + FheUint128::cast_from(b)),
-            (Value::Int128(a), Value::Int16(b)) => Value::Int128(a + FheUint128::cast_from(b)),
-            (Value::Int128(a), Value::Int32(b)) => Value::Int128(a + FheUint128::cast_from(b)),
-            (Value::Int128(a), Value::Int64(b)) => Value::Int128(a + FheUint128::cast_from(b)),
-            (Value::Int128(a), Value::Int128(b)) => Value::Int128(a + b),
-
-            _ => unimplemented!(),
+    fn sub(self, other: u8) -> Self {
+        match self {
+            Value::Bool(_val) => unimplemented!(),
+            Value::Uint8(val) => Value::Uint8(val - other),
+            Value::Uint16(val) => Value::Uint16(val - other as u16),
+            Value::Uint32(val) => Value::Uint32(val - other as u32),
+            Value::Uint64(val) => Value::Uint64(val - other as u64),
+            Value::Uint128(val) => Value::Uint128(val - other as u128),
         }
     }
 }
-*/
 
-impl_ops! {
+binary_op! {
     add, add_method, +;
     sub, sub_method, -;
     mul, mul_method, *;
@@ -533,6 +574,12 @@ pub struct VM {
     ip: usize,          // Instruction pointer
 }
 
+impl Default for VM {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VM {
     pub fn new() -> VM {
         VM {
@@ -553,9 +600,9 @@ impl VM {
     pub fn execute(&mut self, code: &[OpCode]) {
         self.ip = 0; // Initialize IP at the start of execution
         while self.ip < code.len() {
-            match code[self.ip] {
+            match &code[self.ip] {
                 OpCode::Push(value) => {
-                    self.stack.push(value);
+                    self.stack.push(value.clone());
                 }
                 /*
                 OpCode::Jmp(target) => {
@@ -608,37 +655,37 @@ impl VM {
                 OpCode::Eq => {
                     let b = self.pop();
                     let a = self.pop();
-                    let val = Value::Int8(FheUint8::cast_from(a.eq(b)));
+                    let val = Value::Bool(a.eq(b));
                     self.push(val);
                 }
                 OpCode::Neq => {
                     let b = self.pop();
                     let a = self.pop();
-                    let val = Value::Int8(FheUint8::cast_from(a.ne(b)));
+                    let val = Value::Bool(a.ne(b));
                     self.push(val);
                 }
                 OpCode::Lt => {
                     let b = self.pop();
                     let a = self.pop();
-                    let val = Value::Int8(FheUint8::cast_from(a.lt(b)));
+                    let val = Value::Bool(a.lt(b));
                     self.push(val);
                 }
                 OpCode::Lte => {
                     let b = self.pop();
                     let a = self.pop();
-                    let val = Value::Int8(FheUint8::cast_from(a.le(b)));
+                    let val = Value::Bool(a.le(b));
                     self.push(val);
                 }
                 OpCode::Gt => {
                     let b = self.pop();
                     let a = self.pop();
-                    let val = Value::Int8(FheUint8::cast_from(a.gt(b)));
+                    let val = Value::Bool(a.gt(b));
                     self.push(val);
                 }
                 OpCode::Gte => {
                     let b = self.pop();
                     let a = self.pop();
-                    let val = Value::Int8(FheUint8::cast_from(a.ge(b)));
+                    let val = Value::Bool(a.ge(b));
                     self.push(val);
                 }
                 OpCode::Min => {
@@ -655,7 +702,8 @@ impl VM {
                     let c = self.pop();
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(self.mux(a, b, c));
+                    let result = self.mux(a, b, c);
+                    self.push(result);
                 }
                 OpCode::ShiftRight => {
                     let b = self.pop();
@@ -668,8 +716,8 @@ impl VM {
                     self.push(a.shl(b));
                 }
                 OpCode::Dup => {
-                    let value = *self.stack.last().expect("Stack underflow on Dup");
-                    self.stack.push(value);
+                    let value = self.stack.last().expect("Stack underflow on Dup");
+                    self.stack.push(value.clone());
                 }
                 OpCode::NoOp => {
                     // Do nothing
@@ -680,20 +728,21 @@ impl VM {
                 }
                 OpCode::Dec => {
                     let a = self.pop();
-                    self.push(a.sub(Value::Int8(1)));
+                    self.push(a - 1u8);
                 }
                 OpCode::Load(address) => {
                     // Assume memory is a Vec<Value>, and address is within bounds
-                    let uaddress: usize = address.try_into().unwrap();
-                    let value = self.memory[uaddress];
-                    self.stack.push(value);
+                    let uaddress: usize = (*address).try_into().unwrap();
+                    let value = &self.memory[uaddress];
+                    self.stack.push(value.clone());
                 }
                 OpCode::Store(address) => {
                     let value = self.pop();
                     // Ensure memory is large enough to handle address
-                    let uaddress: usize = address.try_into().unwrap();
+                    let uaddress: usize = (*address).try_into().unwrap();
                     if self.memory.len() <= uaddress {
-                        self.memory.resize(uaddress + 1, Value::Int32(0)); // Example resizing with default value
+                        let fhe_one: FheUint8 = FheUint8::try_encrypt_trivial(1u8).unwrap();
+                        self.memory.resize(uaddress + 1, Value::Uint8(fhe_one));
                     }
                     self.memory[uaddress] = value;
                 }
@@ -703,477 +752,769 @@ impl VM {
                     self.push(a);
                     self.push(b);
                 }
+                OpCode::Neg => {
+                    let a = self.pop();
+                    self.push(a.neg());
+                }
             }
             self.ip += 1; // Move to the next instruction unless jumped
         }
     }
 
     fn mux(&self, a: Value, b: Value, c: Value) -> Value {
-        match a {
-            Value::Int8(cond) => {
-                cond.cmux(b, c)
-            }
-            Value::Int16(cond) => {
-                if cond != 0 {
-                    b
-                } else {
-                    c
-                }
-            }
-            Value::Int32(cond) => {
-                if cond != 0 {
-                    b
-                } else {
-                    c
-                }
-            }
-            Value::Int64(cond) => {
-                if cond != 0 {
-                    b
-                } else {
-                    c
-                }
-            }
-            Value::Int128(cond) => {
-                if cond != 0 {
-                    b
-                } else {
-                    c
-                }
-            }
-        }
+        let a = a.as_bool().unwrap();
+        let b = b.as_int8().unwrap();
+        let c = c.as_int8().unwrap();
+
+        let r = a.if_then_else(b, c);
+        Value::Uint8(r)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tfhe::{
+        generate_keys, set_server_key, ConfigBuilder, FheBool, FheUint8,
+    };
 
     #[test]
-    fn test_add_i8_i16_promotion() {
+    fn test_add_i8_i16_promotion() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 20u8;
+        let b = 5u16;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint16::try_encrypt(b, &client_key)?;
+
         let mut vm = VM::new();
         let bytecode = [
-            OpCode::Push(Value::Int8(10)),
-            OpCode::Push(Value::Int16(20)),
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint16(enc_b)),
             OpCode::Add,
         ];
         vm.execute(&bytecode);
-        assert_eq!(vm.pop(), Value::Int16(30));
+
+        let encrypted_res = vm.pop();
+        let clear_res: u16 = encrypted_res.as_int16().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 25);
+
+        Ok(())
     }
 
-    // Tests for Add operation
     #[test]
-    fn test_add_i8_i8() {
+    fn test_add() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 1u8;
+        let b = 2u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
         let mut vm = VM::new();
         let bytecode = [
-            OpCode::Push(Value::Int8(10)),
-            OpCode::Push(Value::Int8(20)),
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::Add,
         ];
         vm.execute(&bytecode);
-        assert_eq!(vm.pop(), Value::Int8(30));
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 3);
+        Ok(())
     }
 
     #[test]
-    fn test_add_i16_i16() {
-        let mut vm = VM::new();
-        let bytecode = [
-            OpCode::Push(Value::Int16(300)),
-            OpCode::Push(Value::Int16(500)),
-            OpCode::Add,
-        ];
-        vm.execute(&bytecode);
-        assert_eq!(vm.pop(), Value::Int16(800));
-    }
+    fn test_subtract() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
 
-    #[test]
-    fn test_add_i32_i32() {
-        let mut vm = VM::new();
-        let bytecode = [
-            OpCode::Push(Value::Int32(20000)),
-            OpCode::Push(Value::Int32(30000)),
-            OpCode::Add,
-        ];
-        vm.execute(&bytecode);
-        assert_eq!(vm.pop(), Value::Int32(50000));
-    }
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
 
-    // Testing type promotion
-    #[test]
-    fn test_add_i8_i32_promotion() {
-        let mut vm = VM::new();
-        let bytecode = [
-            OpCode::Push(Value::Int8(100)),
-            OpCode::Push(Value::Int32(20000)),
-            OpCode::Add,
-        ];
-        vm.execute(&bytecode);
-        assert_eq!(vm.pop(), Value::Int32(20100));
-    }
+        let a = 20u8;
+        let b = 5u8;
 
-    // Tests for Sub operation
-    #[test]
-    fn test_sub_i8_i8() {
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+
         let mut vm = VM::new();
         let bytecode = [
-            OpCode::Push(Value::Int8(10)),
-            OpCode::Push(Value::Int8(5)),
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::Sub,
         ];
         vm.execute(&bytecode);
-        assert_eq!(vm.pop(), Value::Int8(5));
+
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 15);
+
+        Ok(())
     }
 
     #[test]
-    fn test_sub_i16_i16() {
+    fn test_multiply() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 2u8;
+        let b = 3u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
         let mut vm = VM::new();
         let bytecode = [
-            OpCode::Push(Value::Int16(500)),
-            OpCode::Push(Value::Int16(300)),
-            OpCode::Sub,
-        ];
-        vm.execute(&bytecode);
-        assert_eq!(vm.pop(), Value::Int16(200));
-    }
-
-    #[test]
-    fn test_sub_i32_i32() {
-        let mut vm = VM::new();
-        let bytecode = [
-            OpCode::Push(Value::Int32(30000)),
-            OpCode::Push(Value::Int32(20000)),
-            OpCode::Sub,
-        ];
-        vm.execute(&bytecode);
-        assert_eq!(vm.pop(), Value::Int32(10000));
-    }
-
-    // Tests for Mux operation
-    #[test]
-    fn test_mux() {
-        // Test setup
-        let mut vm = VM::new();
-
-        // Test case 1: Condition is true (non-zero), expect b to be selected
-        let bytecode = [
-            OpCode::Push(Value::Int8(1)),
-            OpCode::Push(Value::Int8(10)),
-            OpCode::Push(Value::Int8(20)),
-            OpCode::Mux,
-        ];
-        vm.execute(&bytecode);
-        assert_eq!(
-            vm.pop(),
-            Value::Int8(10),
-            "MUX did not select the correct value for true condition"
-        );
-
-        // Clear the stack for the next test
-        vm.stack.clear();
-
-        // Test case 2: Condition is false (zero), expect c to be selected
-        vm.push(Value::Int8(0)); // Condition a, zero -> false
-        vm.push(Value::Int8(10)); // Value b
-        vm.push(Value::Int8(20)); // Value c
-        let bytecode = [
-            OpCode::Push(Value::Int8(0)),
-            OpCode::Push(Value::Int8(10)),
-            OpCode::Push(Value::Int8(20)),
-            OpCode::Mux,
-        ];
-        vm.execute(&bytecode);
-        assert_eq!(
-            vm.pop(),
-            Value::Int8(20),
-            "MUX did not select the correct value for false condition"
-        );
-    }
-
-    #[test]
-    fn test_complex_operation_with_mux() {
-        let mut vm = VM::new();
-
-        // Variables setup: a = 10, b = 5, c = 2
-        vm.push(Value::Int32(2)); // c
-        vm.push(Value::Int32(5)); // b
-        vm.push(Value::Int32(10)); // a
-
-        // Perform 'a > b' and leave the result on the stack
-        vm.push(Value::Int32(10)); // Push 'a' again for comparison
-        vm.push(Value::Int32(5)); // Push 'b' again for comparison
-        vm.execute(&[OpCode::Gt]); // 'a > b' comparison
-
-        // Path 1: Calculate (a + b) * c
-        vm.push(Value::Int32(10)); // Push 'a' again
-        vm.push(Value::Int32(5)); // Push 'b' again
-        vm.execute(&[OpCode::Add]); // a + b
-        vm.push(Value::Int32(2)); // Push 'c' again
-        vm.execute(&[OpCode::Mul]); // (a + b) * c
-
-        // Path 2: Calculate a - b (simpler operation for the 'else' path)
-        vm.push(Value::Int32(10)); // Push 'a' again
-        vm.push(Value::Int32(5)); // Push 'b' again
-        vm.execute(&[OpCode::Sub]); // a - b
-
-        // Execute Mux to select based on 'a > b'
-        vm.execute(&[OpCode::Mux]);
-
-        // Since 'a > b' is true, we expect the result of (a + b) * c => (10 + 5) * 2 = 30
-        assert_eq!(vm.pop(), Value::Int32(30));
-    }
-
-    #[test]
-    fn test_jmp_false() {
-        let mut vm = VM::new();
-
-        // Setup: Push a value, jump over an operation that would change it, and verify it remains unchanged.
-        let bytecode = [
-            OpCode::Push(Value::Int32(0)),
-            OpCode::Jmp(5), // Jump to the instruction at index 2 (effectively the end).
-            OpCode::Push(Value::Int32(42)),
-            OpCode::Push(Value::Int32(43)),
-            OpCode::Add,  // This operation should be skipped due to the jump.
-            OpCode::NoOp, // No-op to ensure there's an instruction at index 2 for the jump target
-        ];
-
-        vm.execute(&bytecode);
-
-        // Verify: The value on the stack should be 1 since the add operation was skipped.
-        assert_eq!(vm.pop(), Value::Int32(0));
-    }
-
-    #[test]
-    fn test_jmpif_true_condition() {
-        let mut vm = VM::new();
-
-        // Setup: Push a true condition, and target index, perform a conditional jump, and an operation that should be skipped.
-        let bytecode = [
-            OpCode::Push(Value::Int32(1)),
-            OpCode::JmpIf(3), // Conditional jump to the instruction at index 3 if the condition is true.
-            OpCode::Add,      // This operation should be skipped.
-        ];
-
-        vm.execute(&bytecode);
-
-        // The stack should be empty since both values are popped for the JmpIf operation and the jump is taken.
-        assert!(vm.stack.is_empty());
-    }
-
-    #[test]
-    fn test_jmpif_true_condition_2() {
-        let mut vm = VM::new();
-
-        // Setup: Push a true condition, and target index, perform a conditional jump, and an operation that should be skipped.
-        let bytecode = [
-            OpCode::Push(Value::Int8(1)),
-            OpCode::JmpIf(3), // Conditional jump to the instruction at index 3 if the condition is true.
-            OpCode::NoOp,     // No-op to ensure there's an instruction at
-            OpCode::Push(Value::Int128(10000000000000000000000000000000000000)),
-            OpCode::Push(Value::Int8(42)),
-            OpCode::Add, // This operation should be skipped.
-        ];
-
-        vm.execute(&bytecode);
-
-        // Verify: The addition operation should have occurred, resulting in 20.
-        assert_eq!(
-            vm.pop(),
-            Value::Int128(10000000000000000000000000000000000042)
-        );
-    }
-
-    #[test]
-    fn test_jmpif_false_condition() {
-        let mut vm = VM::new();
-
-        let bytecode = [
-            OpCode::Push(Value::Int32(1)),  // Another value to add.
-            OpCode::Push(Value::Int32(19)), // Value to add if the jump is not taken.
-            OpCode::Push(Value::Int32(0)),  // False condition (zero value).
-            OpCode::JmpIf(7), // Should not jump because condition is false. Expects condition and target index on the stack.
-            OpCode::Add,      // Should execute because the jump is not taken.
-            OpCode::NoOp, // No-op to ensure there's an instruction at index 2 for the jump target
-                          // OpCode::... (Ensure there's a valid opcode or no-op here if the jump target index is 2)
-        ];
-
-        vm.execute(&bytecode);
-
-        // Verify: The addition operation should have occurred, resulting in 20.
-        assert_eq!(vm.pop(), Value::Int32(20));
-    }
-
-    #[test]
-    fn test_program_serialization_deserialization() {
-        // Define a sample program with a mix of opcodes, including a push with a value
-        let original_program = [
-            OpCode::Add,
-            OpCode::Sub,
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::Mul,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 6);
+        Ok(())
+    }
+
+    #[test]
+    fn test_divide() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 6u8;
+        let b = 2u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::Div,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 3);
+        Ok(())
+    }
+
+    #[test]
+    fn test_bitwise_and() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 5u8;
+        let b = 3u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::And,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 1);
+        Ok(())
+    }
+
+    #[test]
+    fn test_bitwise_or() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 5u8;
+        let b = 3u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::Or,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 7);
+        Ok(())
+    }
+
+    #[test]
+    fn test_bitwise_xor() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 5u8;
+        let b = 3u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::Xor,
-            OpCode::ShiftRight,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 6);
+        Ok(())
+    }
+
+    #[test]
+    fn test_bitwise_shift_left() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 1u8;
+        let b = 1u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::ShiftLeft,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 2);
+        Ok(())
+    }
+
+    #[test]
+    fn test_bitwise_shift_right() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 2u8;
+        let b = 1u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
+            OpCode::ShiftRight,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 1);
+        Ok(())
+    }
+
+    #[test]
+    fn test_eq() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 2u8;
+        let b = 2u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::Eq,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res = encrypted_res.as_bool().unwrap().decrypt(&client_key);
+        assert!(clear_res);
+        Ok(())
+    }
+
+    #[test]
+    fn test_neq() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 2u8;
+        let b = 3u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::Neq,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res = encrypted_res.as_bool().unwrap().decrypt(&client_key);
+        assert!(clear_res);
+        Ok(())
+    }
+
+    #[test]
+    fn test_lt() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 1u8;
+        let b = 2u8;
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::Lt,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res = encrypted_res.as_bool().unwrap().decrypt(&client_key);
+        assert!(clear_res);
+        Ok(())
+    }
+
+    #[test]
+    fn test_gt() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 2u8;
+        let b = 1u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::Gt,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res = encrypted_res.as_bool().unwrap().decrypt(&client_key);
+        assert!(clear_res);
+        Ok(())
+    }
+
+    #[test]
+    fn test_gte() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 2u8;
+        let b = 2u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::Gte,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res = encrypted_res.as_bool().unwrap().decrypt(&client_key);
+        assert!(clear_res);
+        Ok(())
+    }
+
+    #[test]
+    fn test_lte() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 2u8;
+        let b = 2u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
+            OpCode::Lte,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res = encrypted_res.as_bool().unwrap().decrypt(&client_key);
+        assert!(clear_res);
+        Ok(())
+    }
+
+    #[test]
+    fn test_min() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 4u8;
+        let b = 5u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::Min,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 4);
+        Ok(())
+    }
+
+    #[test]
+    fn test_max() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 4u8;
+        let b = 5u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::Max,
-            OpCode::Mux,
-            OpCode::Jmp(42),
-            OpCode::JmpIf(43),
-            OpCode::Push(Value::Int8(8)),
-            OpCode::Push(Value::Int16(16)),
-            OpCode::Push(Value::Int32(32)),
-            OpCode::Push(Value::Int64(64)),
-            OpCode::Push(Value::Int128(128)),
-            OpCode::Dup,
-            OpCode::NoOp,
-            OpCode::Inc,
-            OpCode::Dec,
-            OpCode::Load(77),
-            OpCode::Store(88),
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 5);
+        Ok(())
+    }
+
+    #[test]
+    fn test_inc() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 4u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [OpCode::Push(Value::Uint8(enc_a)), OpCode::Inc];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 5);
+        Ok(())
+    }
+
+    #[test]
+    fn test_dec() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 4u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [OpCode::Push(Value::Uint8(enc_a)), OpCode::Dec];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 3);
+        Ok(())
+    }
+
+    #[test]
+    fn test_load() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 5u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Store(0),
+            OpCode::Load(0),
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 5);
+        Ok(())
+    }
+
+    #[test]
+    fn test_store() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 5u8;
+        let b = 6u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Store(0),
+            OpCode::Push(Value::Uint8(enc_b)),
+            OpCode::Store(1),
+            OpCode::Load(0),
+            OpCode::Load(1),
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 6);
+        Ok(())
+    }
+
+    #[test]
+    fn test_swap() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 5u8;
+        let b = 6u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
             OpCode::Swap,
-            // OpCode::Const(99),
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 5);
+        Ok(())
+    }
+
+    #[test]
+    fn test_neg() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = 5u8;
+
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [OpCode::Push(Value::Uint8(enc_a)), OpCode::Neg];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, -5i8 as u8);
+        Ok(())
+    }
+
+    #[test]
+    fn test_mux() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        let a = true;
+        let b = 6u8;
+        let c = 1u8;
+
+        let enc_a = FheBool::try_encrypt(a, &client_key)?;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let enc_c = FheUint8::try_encrypt(c, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Bool(enc_a)),
+            OpCode::Push(Value::Uint8(enc_b)),
+            OpCode::Push(Value::Uint8(enc_c)),
+            OpCode::Mux,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 6);
+        Ok(())
+    }
+
+    /*
+    #[test]
+    fn test_fibonacci() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+
+        // Fibonacci program
+        let bytecode = [
+            OpCode::Push(Value::Uint8(FheUint8::try_encrypt(0, &client_key)?)), // n
+            OpCode::Push(Value::Uint8(FheUint8::try_encrypt(1, &client_key)?)), // a
+            OpCode::Push(Value::Uint8(FheUint8::try_encrypt(1, &client_key)?)), // b
+            OpCode::Push(Value::Uint8(FheUint8::try_encrypt(10, &client_key)?)), // max
+            OpCode::Store(0), // Store n
+            OpCode::Store(1), // Store a
+            OpCode::Store(2), // Store b
+            OpCode::Store(3), // Store max
+            OpCode::Load(0), // Load n
+            OpCode::Load(3), // Load max
+            OpCode::Gte, // n >= max
+            OpCode::JmpIf(22), // Jump to end if n >= max
+            OpCode::Load(1), // Load a
+            OpCode::Load(2), // Load b
+            OpCode::Add, // a + b
+            OpCode::Store(4), // Store a + b
+            OpCode::Load(2), // Load b
+            OpCode::Store(1), // Store b
+            OpCode::Load(4), // Load a + b
+            OpCode::Store(2), // Store a + b
+            OpCode::Load(0), // Load n
+            OpCode::Inc, // n + 1
+            OpCode::Store(0), // Store n + 1
+            OpCode::Jmp(8), // Jump to beginning
+            OpCode::Load(1), // Load a
         ];
 
-        // Serialize the program into bytes
-        let serialized = serialize(&original_program);
-
-        println!("Serialized program: {:?}", hex::encode(serialized.clone()));
-
-        // Deserialize the bytes back into opcodes
-        let deserialized_program = deserialize(&serialized);
-
-        // Verify that the deserialized program matches the original
-        assert_eq!(deserialized_program, original_program);
-    }
-
-    #[test]
-    fn test_inc() {
         let mut vm = VM::new();
-        vm.push(Value::Int32(10));
-        vm.execute(&[OpCode::Inc]);
-        assert_eq!(vm.pop(), Value::Int32(11));
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        assert_eq!(clear_res, 55);
+        Ok(())
     }
-
-    #[test]
-    fn test_dec() {
-        let mut vm = VM::new();
-        vm.push(Value::Int32(10));
-        vm.execute(&[OpCode::Dec]);
-        assert_eq!(vm.pop(), Value::Int32(9));
-    }
-
-    #[test]
-    fn test_load_store() {
-        let mut vm = VM::new();
-        vm.memory.resize(1, Value::Int32(0)); // Ensure memory is initialized
-        vm.push(Value::Int32(42)); // Value to store
-        vm.execute(&[OpCode::Store(0)]); // Store at address 0
-        vm.execute(&[OpCode::Load(0)]); // Load from address 0
-        assert_eq!(vm.pop(), Value::Int32(42));
-    }
-
-    #[test]
-    fn test_swap() {
-        let mut vm = VM::new();
-        vm.push(Value::Int32(10));
-        vm.push(Value::Int32(20));
-        vm.execute(&[OpCode::Swap]);
-        assert_eq!(vm.pop(), Value::Int32(10));
-        assert_eq!(vm.pop(), Value::Int32(20));
-    }
-
-    #[test]
-    #[should_panic(expected = "attempt to add with overflow")]
-    fn test_inc_overflow() {
-        let mut vm = VM::new();
-        vm.push(Value::Int32(i32::MAX));
-        vm.execute(&[OpCode::Inc]);
-        //assert_eq!(vm.pop(), Value::Int32(i32::MIN));
-    }
-
-    #[test]
-    #[should_panic(expected = "attempt to subtract with overflow")]
-    fn test_dec_underflow() {
-        let mut vm = VM::new();
-        vm.push(Value::Int32(i32::MIN));
-        vm.execute(&[OpCode::Dec]);
-        //assert_eq!(vm.pop(), Value::Int32(i32::MAX));
-    }
-
-    #[test]
-    #[should_panic(expected = "index out of bounds: the len is 0 but the index is 100")]
-    fn test_load_uninitialized_memory() {
-        let mut vm = VM::new();
-        // Assuming memory is automatically initialized to a default value when accessed
-        vm.execute(&[OpCode::Load(100)]); // Load from an "uninitialized" address
-        assert_eq!(vm.pop(), Value::Int32(0)); // Adjust based on your VM's default memory initialization
-    }
-
-    #[test]
-    fn test_store_and_load() {
-        let mut vm = VM::new();
-        vm.push(Value::Int32(42));
-        vm.execute(&[OpCode::Store(0)]); // Store at address 0
-        vm.execute(&[OpCode::Load(0)]); // Load from address 0
-        assert_eq!(vm.pop(), Value::Int32(42));
-    }
-
-    // Test Swap with insufficient stack depth
-
-    #[test]
-    #[should_panic(expected = "Stack underflow")]
-    fn test_swap_insufficient_stack() {
-        let mut vm = VM::new();
-        vm.push(Value::Int32(10));
-        // No second value to swap with, testing error handling or stack underflow management
-        vm.execute(&[OpCode::Swap]);
-        // Outcome depends on VM's error handling strategy (e.g., exception, error state, or stack underflow handling)
-        // This assertion might need adjustment based on how your VM handles such scenarios
-        assert_eq!(vm.stack.len(), 1); // For example, checking stack size remains unchanged
-    }
-
-    #[test]
-    fn test_fibonacci_sequence() {
-        let mut vm = VM::new();
-        // Assuming the VM has been appropriately initialized with memory and stack.
-
-        // Simulated program to calculate the 5th Fibonacci number
-        // This assumes a somewhat "idealized" opcode layout and may need adjustments
-        let program = vec![
-            OpCode::Push(Value::Int32(5)), // n = 5, calculate the 5th Fibonacci number
-            OpCode::Push(Value::Int32(0)), // Fibonacci[0]
-            OpCode::Push(Value::Int32(1)), // Fibonacci[1]
-            OpCode::Push(Value::Int32(1)), // Counter for how many Fibonacci numbers have been calculated
-            // Start of the loop to calculate Fibonacci numbers
-            // Loop condition: if counter < n, calculate the next Fibonacci number
-            OpCode::Dup,                   // Duplicate the counter
-            OpCode::Push(Value::Int32(5)), // Push n (5) to stack for comparison
-            OpCode::Lt,                    // Compare if counter < n
-            OpCode::JmpIf(8), // Jump to the next Fibonacci calculation if true (index 8 is hypothetical and needs adjustment)
-            // Calculation part: add the last two Fibonacci numbers
-            OpCode::Dup,  // Duplicate the last Fibonacci number
-            OpCode::Swap, // Swap the two topmost numbers to get the second last
-            OpCode::Dup,  // Duplicate the second last Fibonacci number
-            OpCode::Swap, // Restore original order
-            OpCode::Add,  // Add the two topmost numbers to get the next Fibonacci number
-            // Counter increment and conditional jump back to loop start
-            OpCode::Push(Value::Int32(1)), // Push 1 to increment the counter
-            OpCode::Add,                   // Increment the counter
-            OpCode::Jmp(4), // Jump back to the start of the loop (index 4 is hypothetical and needs adjustment)
-            // End of loop; cleanup stack to leave the last calculated Fibonacci number on top
-            OpCode::NoOp, // Placeholder for additional cleanup or result preparation opcodes
-        ];
-
-        // Execute the Fibonacci sequence program
-        vm.execute(&program);
-
-        // Assuming the last Fibonacci number is left on top of the stack
-        assert_eq!(vm.pop(), Value::Int32(5)); // Check if the 5th Fibonacci number is indeed 5
-    }
+    */
 }
