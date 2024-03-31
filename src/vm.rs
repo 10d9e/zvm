@@ -31,15 +31,14 @@ pub enum OpCode {
     JmpIf(i32), // Jump if the top of the stack is nonzero (true)
 
     Push(Value), // Push now carries a Value with it
-    Dup, // Duplicate the top item on the stack
-    NoOp, // No operation
+    Dup,         // Duplicate the top item on the stack
+    NoOp,        // No operation
 
     Inc,
     Dec,
     Load(i32), // Assuming address space is indexed by i32
     Store(i32),
     Swap,
-
 }
 
 impl OpCode {
@@ -67,38 +66,39 @@ impl OpCode {
                 let mut bytes = vec![18];
                 bytes.extend(address.to_le_bytes());
                 bytes
-            },
+            }
             OpCode::JmpIf(address) => {
                 let mut bytes = vec![19];
                 bytes.extend(address.to_le_bytes());
                 bytes
-            },
+            }
             OpCode::NoOp => vec![20],
             OpCode::Dup => vec![21],
             OpCode::Push(value) => {
                 let mut bytes = vec![22]; // Example byte for Push
                 bytes.extend(value.to_bytes());
                 bytes
-            },
+            }
             OpCode::Inc => vec![23],
             OpCode::Dec => vec![24],
             OpCode::Load(address) => {
                 let mut bytes = vec![25];
                 bytes.extend(address.to_le_bytes());
                 bytes
-            },
+            }
             OpCode::Store(address) => {
                 let mut bytes = vec![26];
                 bytes.extend(address.to_le_bytes());
                 bytes
-            },
+            }
             OpCode::Swap => vec![27],
         }
     }
 }
 
 impl OpCode {
-    fn from_bytes(bytes: &[u8]) -> (Self, usize) { // Returns OpCode and bytes consumed
+    fn from_bytes(bytes: &[u8]) -> (Self, usize) {
+        // Returns OpCode and bytes consumed
         match bytes[0] {
             0 => (OpCode::Add, 1),
             1 => (OpCode::Sub, 1),
@@ -121,34 +121,33 @@ impl OpCode {
             18 => {
                 let address = i32::from_le_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]);
                 (OpCode::Jmp(address), 5)
-            },
+            }
             19 => {
                 let address = i32::from_le_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]);
                 (OpCode::JmpIf(address), 5)
-            },
+            }
             20 => (OpCode::NoOp, 1),
             21 => (OpCode::Dup, 1),
             22 => {
                 let (value, size) = Value::from_bytes(&bytes[1..]);
                 (OpCode::Push(value), size + 1)
-            },
+            }
             23 => (OpCode::Inc, 1),
             24 => (OpCode::Dec, 1),
             25 => {
                 let address = i32::from_le_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]);
                 (OpCode::Load(address), 5)
-            },
+            }
             26 => {
                 let address = i32::from_le_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]);
                 (OpCode::Store(address), 5)
-            },
+            }
             27 => (OpCode::Swap, 1),
             // Handle other opcodes...
             _ => unimplemented!(),
         }
     }
 }
-
 
 macro_rules! impl_ops {
     ($($op:ident, $op_method:ident, $op_token:tt);*) => {
@@ -234,49 +233,53 @@ impl Value {
                 let mut bytes = vec![1];
                 bytes.extend(&val.to_le_bytes());
                 bytes
-            },
+            }
             Value::Int32(val) => {
                 let mut bytes = vec![2];
                 bytes.extend(&val.to_le_bytes());
                 bytes
-            },
+            }
             Value::Int64(val) => {
                 let mut bytes = vec![3];
                 bytes.extend(&val.to_le_bytes());
                 bytes
-            },
+            }
             Value::Int128(val) => {
                 let mut bytes = vec![4];
                 bytes.extend(&val.to_le_bytes());
                 bytes
-            },
+            }
         }
     }
 }
 
 impl Value {
-    fn from_bytes(bytes: &[u8]) -> (Self, usize) { // Returns Value and bytes consumed
+    fn from_bytes(bytes: &[u8]) -> (Self, usize) {
+        // Returns Value and bytes consumed
         match bytes[0] {
             0 => (Value::Int8(bytes[1] as i8), 2),
             1 => {
                 let val = i16::from_le_bytes([bytes[1], bytes[2]]);
                 (Value::Int16(val), 3)
-            },
+            }
             2 => {
                 let val = i32::from_le_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]);
                 (Value::Int32(val), 5)
-            },
+            }
             3 => {
-                let val = i64::from_le_bytes([bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]);
+                let val = i64::from_le_bytes([
+                    bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8],
+                ]);
                 (Value::Int64(val), 9)
-            },
+            }
             4 => {
                 let val = i128::from_le_bytes([
                     bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8],
-                    bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15], bytes[16],
+                    bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15],
+                    bytes[16],
                 ]);
                 (Value::Int128(val), 17)
-            },
+            }
             // Handle other Value variants...
             _ => unimplemented!(),
         }
@@ -339,7 +342,7 @@ impl VM {
             match code[self.ip] {
                 OpCode::Push(value) => {
                     self.stack.push(value);
-                },
+                }
                 OpCode::Jmp(target) => {
                     self.ip = target.try_into().unwrap(); // Set IP to target, adjusting for 0-based indexing if necessary
                     continue;
@@ -451,19 +454,18 @@ impl VM {
                 }
                 OpCode::Inc => {
                     let a = self.pop();
-                    // Assuming you have a method to safely add Int32 values or match on Value variant for addition
                     self.push(a.add(Value::Int8(1)));
-                },
+                }
                 OpCode::Dec => {
                     let a = self.pop();
                     self.push(a.sub(Value::Int8(1)));
-                },
+                }
                 OpCode::Load(address) => {
                     // Assume memory is a Vec<Value>, and address is within bounds
                     let uaddress: usize = address.try_into().unwrap();
                     let value = self.memory[uaddress];
                     self.stack.push(value);
-                },
+                }
                 OpCode::Store(address) => {
                     let value = self.pop();
                     // Ensure memory is large enough to handle address
@@ -472,14 +474,13 @@ impl VM {
                         self.memory.resize(uaddress + 1, Value::Int32(0)); // Example resizing with default value
                     }
                     self.memory[uaddress] = value;
-                },
+                }
                 OpCode::Swap => {
                     let a = self.pop();
                     let b = self.pop();
                     self.push(a);
                     self.push(b);
-                },
-
+                }
             }
             self.ip += 1; // Move to the next instruction unless jumped
         }
@@ -536,7 +537,7 @@ mod tests {
         let bytecode = [
             OpCode::Push(Value::Int8(10)),
             OpCode::Push(Value::Int16(20)),
-            OpCode::Add, 
+            OpCode::Add,
         ];
         vm.execute(&bytecode);
         assert_eq!(vm.pop(), Value::Int16(30));
@@ -549,7 +550,7 @@ mod tests {
         let bytecode = [
             OpCode::Push(Value::Int8(10)),
             OpCode::Push(Value::Int8(20)),
-            OpCode::Add, 
+            OpCode::Add,
         ];
         vm.execute(&bytecode);
         assert_eq!(vm.pop(), Value::Int8(30));
@@ -561,7 +562,7 @@ mod tests {
         let bytecode = [
             OpCode::Push(Value::Int16(300)),
             OpCode::Push(Value::Int16(500)),
-            OpCode::Add, 
+            OpCode::Add,
         ];
         vm.execute(&bytecode);
         assert_eq!(vm.pop(), Value::Int16(800));
@@ -573,7 +574,7 @@ mod tests {
         let bytecode = [
             OpCode::Push(Value::Int32(20000)),
             OpCode::Push(Value::Int32(30000)),
-            OpCode::Add, 
+            OpCode::Add,
         ];
         vm.execute(&bytecode);
         assert_eq!(vm.pop(), Value::Int32(50000));
@@ -586,7 +587,7 @@ mod tests {
         let bytecode = [
             OpCode::Push(Value::Int8(100)),
             OpCode::Push(Value::Int32(20000)),
-            OpCode::Add, 
+            OpCode::Add,
         ];
         vm.execute(&bytecode);
         assert_eq!(vm.pop(), Value::Int32(20100));
@@ -599,7 +600,7 @@ mod tests {
         let bytecode = [
             OpCode::Push(Value::Int8(10)),
             OpCode::Push(Value::Int8(5)),
-            OpCode::Sub, 
+            OpCode::Sub,
         ];
         vm.execute(&bytecode);
         assert_eq!(vm.pop(), Value::Int8(5));
@@ -611,7 +612,7 @@ mod tests {
         let bytecode = [
             OpCode::Push(Value::Int16(500)),
             OpCode::Push(Value::Int16(300)),
-            OpCode::Sub, 
+            OpCode::Sub,
         ];
         vm.execute(&bytecode);
         assert_eq!(vm.pop(), Value::Int16(200));
@@ -623,7 +624,7 @@ mod tests {
         let bytecode = [
             OpCode::Push(Value::Int32(30000)),
             OpCode::Push(Value::Int32(20000)),
-            OpCode::Sub, 
+            OpCode::Sub,
         ];
         vm.execute(&bytecode);
         assert_eq!(vm.pop(), Value::Int32(10000));
@@ -640,7 +641,7 @@ mod tests {
             OpCode::Push(Value::Int8(1)),
             OpCode::Push(Value::Int8(10)),
             OpCode::Push(Value::Int8(20)),
-            OpCode::Mux, 
+            OpCode::Mux,
         ];
         vm.execute(&bytecode);
         assert_eq!(
@@ -660,7 +661,7 @@ mod tests {
             OpCode::Push(Value::Int8(0)),
             OpCode::Push(Value::Int8(10)),
             OpCode::Push(Value::Int8(20)),
-            OpCode::Mux, 
+            OpCode::Mux,
         ];
         vm.execute(&bytecode);
         assert_eq!(
@@ -713,7 +714,7 @@ mod tests {
             OpCode::Jmp(5), // Jump to the instruction at index 2 (effectively the end).
             OpCode::Push(Value::Int32(42)),
             OpCode::Push(Value::Int32(43)),
-            OpCode::Add, // This operation should be skipped due to the jump.
+            OpCode::Add,  // This operation should be skipped due to the jump.
             OpCode::NoOp, // No-op to ensure there's an instruction at index 2 for the jump target
         ];
 
@@ -731,7 +732,7 @@ mod tests {
         let bytecode = [
             OpCode::Push(Value::Int32(1)),
             OpCode::JmpIf(3), // Conditional jump to the instruction at index 3 if the condition is true.
-            OpCode::Add,   // This operation should be skipped.
+            OpCode::Add,      // This operation should be skipped.
         ];
 
         vm.execute(&bytecode);
@@ -748,16 +749,19 @@ mod tests {
         let bytecode = [
             OpCode::Push(Value::Int8(1)),
             OpCode::JmpIf(3), // Conditional jump to the instruction at index 3 if the condition is true.
-            OpCode::NoOp, // No-op to ensure there's an instruction at
+            OpCode::NoOp,     // No-op to ensure there's an instruction at
             OpCode::Push(Value::Int128(10000000000000000000000000000000000000)),
             OpCode::Push(Value::Int8(42)),
-            OpCode::Add,   // This operation should be skipped.
+            OpCode::Add, // This operation should be skipped.
         ];
 
         vm.execute(&bytecode);
 
         // Verify: The addition operation should have occurred, resulting in 20.
-        assert_eq!(vm.pop(), Value::Int128(10000000000000000000000000000000000042));
+        assert_eq!(
+            vm.pop(),
+            Value::Int128(10000000000000000000000000000000000042)
+        );
     }
 
     #[test]
@@ -765,13 +769,13 @@ mod tests {
         let mut vm = VM::new();
 
         let bytecode = [
-            OpCode::Push(Value::Int32(1)), // Another value to add.
+            OpCode::Push(Value::Int32(1)),  // Another value to add.
             OpCode::Push(Value::Int32(19)), // Value to add if the jump is not taken.
-            OpCode::Push(Value::Int32(0)), // False condition (zero value).
+            OpCode::Push(Value::Int32(0)),  // False condition (zero value).
             OpCode::JmpIf(7), // Should not jump because condition is false. Expects condition and target index on the stack.
-            OpCode::Add,   // Should execute because the jump is not taken.
+            OpCode::Add,      // Should execute because the jump is not taken.
             OpCode::NoOp, // No-op to ensure there's an instruction at index 2 for the jump target
-                           // OpCode::... (Ensure there's a valid opcode or no-op here if the jump target index is 2)
+                          // OpCode::... (Ensure there's a valid opcode or no-op here if the jump target index is 2)
         ];
 
         vm.execute(&bytecode);
@@ -815,7 +819,7 @@ mod tests {
             OpCode::Load(77),
             OpCode::Store(88),
             OpCode::Swap,
-           // OpCode::Const(99),
+            // OpCode::Const(99),
         ];
 
         // Serialize the program into bytes
@@ -898,7 +902,7 @@ mod tests {
         let mut vm = VM::new();
         vm.push(Value::Int32(42));
         vm.execute(&[OpCode::Store(0)]); // Store at address 0
-        vm.execute(&[OpCode::Load(0)]);  // Load from address 0
+        vm.execute(&[OpCode::Load(0)]); // Load from address 0
         assert_eq!(vm.pop(), Value::Int32(42));
     }
 
@@ -928,28 +932,24 @@ mod tests {
             OpCode::Push(Value::Int32(0)), // Fibonacci[0]
             OpCode::Push(Value::Int32(1)), // Fibonacci[1]
             OpCode::Push(Value::Int32(1)), // Counter for how many Fibonacci numbers have been calculated
-            
             // Start of the loop to calculate Fibonacci numbers
             // Loop condition: if counter < n, calculate the next Fibonacci number
-            OpCode::Dup,                    // Duplicate the counter
-            OpCode::Push(Value::Int32(5)),  // Push n (5) to stack for comparison
-            OpCode::Lt,                     // Compare if counter < n
-            OpCode::JmpIf(8),               // Jump to the next Fibonacci calculation if true (index 8 is hypothetical and needs adjustment)
-
+            OpCode::Dup,                   // Duplicate the counter
+            OpCode::Push(Value::Int32(5)), // Push n (5) to stack for comparison
+            OpCode::Lt,                    // Compare if counter < n
+            OpCode::JmpIf(8), // Jump to the next Fibonacci calculation if true (index 8 is hypothetical and needs adjustment)
             // Calculation part: add the last two Fibonacci numbers
-            OpCode::Dup,                    // Duplicate the last Fibonacci number
-            OpCode::Swap,                   // Swap the two topmost numbers to get the second last
-            OpCode::Dup,                    // Duplicate the second last Fibonacci number
-            OpCode::Swap,                   // Restore original order
-            OpCode::Add,                    // Add the two topmost numbers to get the next Fibonacci number
-
+            OpCode::Dup,  // Duplicate the last Fibonacci number
+            OpCode::Swap, // Swap the two topmost numbers to get the second last
+            OpCode::Dup,  // Duplicate the second last Fibonacci number
+            OpCode::Swap, // Restore original order
+            OpCode::Add,  // Add the two topmost numbers to get the next Fibonacci number
             // Counter increment and conditional jump back to loop start
-            OpCode::Push(Value::Int32(1)),  // Push 1 to increment the counter
-            OpCode::Add,                    // Increment the counter
-            OpCode::Jmp(4),                 // Jump back to the start of the loop (index 4 is hypothetical and needs adjustment)
-
+            OpCode::Push(Value::Int32(1)), // Push 1 to increment the counter
+            OpCode::Add,                   // Increment the counter
+            OpCode::Jmp(4), // Jump back to the start of the loop (index 4 is hypothetical and needs adjustment)
             // End of loop; cleanup stack to leave the last calculated Fibonacci number on top
-            OpCode::NoOp,                   // Placeholder for additional cleanup or result preparation opcodes
+            OpCode::NoOp, // Placeholder for additional cleanup or result preparation opcodes
         ];
 
         // Execute the Fibonacci sequence program
@@ -958,5 +958,4 @@ mod tests {
         // Assuming the last Fibonacci number is left on top of the stack
         assert_eq!(vm.pop(), Value::Int32(5)); // Check if the 5th Fibonacci number is indeed 5
     }
-
 }
