@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::ops::{Add, Sub};
+use std::ops::{Add, Rem, Sub};
 use tfhe::prelude::*;
 use tfhe::{FheBool, FheUint128, FheUint16, FheUint32, FheUint64, FheUint8};
 
@@ -61,39 +61,39 @@ macro_rules! binary_op {
                         (Value::Bool(_a), Value::Euint128(_b)) => unimplemented!(),
 
                         (Value::Uint8(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Uint8(a), Value::Euint8(b)) => Value::Euint8(a $op_token b),
-                        (Value::Uint8(a), Value::Euint16(b)) => Value::Euint16((a as u16) $op_token b),
-                        (Value::Uint8(a), Value::Euint32(b)) => Value::Euint32((a as u32) $op_token b),
-                        (Value::Uint8(a), Value::Euint64(b)) => Value::Euint64((a as u64) $op_token b),
-                        (Value::Uint8(a), Value::Euint128(b)) => Value::Euint128((a as u128) $op_token b),
+                        (Value::Uint8(a), Value::Euint8(b)) => Value::Euint8(FheUint8::encrypt_trivial(a) $op_token b),
+                        (Value::Uint8(a), Value::Euint16(b)) => Value::Euint16(FheUint16::encrypt_trivial(a) $op_token b),
+                        (Value::Uint8(a), Value::Euint32(b)) => Value::Euint32(FheUint32::encrypt_trivial(a) $op_token b),
+                        (Value::Uint8(a), Value::Euint64(b)) => Value::Euint64(FheUint64::encrypt_trivial(a) $op_token b),
+                        (Value::Uint8(a), Value::Euint128(b)) => Value::Euint128(FheUint128::encrypt_trivial(a) $op_token b),
 
                         (Value::Uint16(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Uint16(a), Value::Euint8(b)) => Value::Euint8((a as u8) $op_token FheUint8::cast_from(b)),
-                        (Value::Uint16(a), Value::Euint16(b)) => Value::Euint16(a $op_token b),
-                        (Value::Uint16(a), Value::Euint32(b)) => Value::Euint32((a as u32) $op_token FheUint32::cast_from(b)),
-                        (Value::Uint16(a), Value::Euint64(b)) => Value::Euint64((a as u64) $op_token FheUint64::cast_from(b)),
-                        (Value::Uint16(a), Value::Euint128(b)) => Value::Euint128((a as u128) $op_token FheUint128::cast_from(b)),
+                        (Value::Uint16(a), Value::Euint8(b)) => Value::Euint8(FheUint8::encrypt_trivial(a) $op_token b),
+                        (Value::Uint16(a), Value::Euint16(b)) => Value::Euint16(FheUint16::encrypt_trivial(a) $op_token b),
+                        (Value::Uint16(a), Value::Euint32(b)) => Value::Euint32(FheUint32::encrypt_trivial(a) $op_token b),
+                        (Value::Uint16(a), Value::Euint64(b)) => Value::Euint64(FheUint64::encrypt_trivial(a) $op_token b),
+                        (Value::Uint16(a), Value::Euint128(b)) => Value::Euint128(FheUint128::encrypt_trivial(a) $op_token b),
 
                         (Value::Uint32(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Uint32(a), Value::Euint8(b)) => Value::Euint8((a as u8) $op_token FheUint8::cast_from(b)),
-                        (Value::Uint32(a), Value::Euint16(b)) => Value::Euint16((a as u16) $op_token FheUint16::cast_from(b)),
-                        (Value::Uint32(a), Value::Euint32(b)) => Value::Euint32(a $op_token b),
-                        (Value::Uint32(a), Value::Euint64(b)) => Value::Euint64((a as u64) $op_token FheUint64::cast_from(b)),
-                        (Value::Uint32(a), Value::Euint128(b)) => Value::Euint128((a as u128) $op_token FheUint128::cast_from(b)),
+                        (Value::Uint32(a), Value::Euint8(b)) => Value::Euint8(FheUint8::encrypt_trivial(a) $op_token b),
+                        (Value::Uint32(a), Value::Euint16(b)) => Value::Euint16(FheUint16::encrypt_trivial(a) $op_token b),
+                        (Value::Uint32(a), Value::Euint32(b)) => Value::Euint32(FheUint32::encrypt_trivial(a) $op_token b),
+                        (Value::Uint32(a), Value::Euint64(b)) => Value::Euint64(FheUint64::encrypt_trivial(a) $op_token b),
+                        (Value::Uint32(a), Value::Euint128(b)) => Value::Euint128(FheUint128::encrypt_trivial(a) $op_token b),
 
                         (Value::Uint64(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Uint64(a), Value::Euint8(b)) => Value::Euint8((a as u8) $op_token FheUint8::cast_from(b)),
-                        (Value::Uint64(a), Value::Euint16(b)) => Value::Euint16((a as u16) $op_token FheUint16::cast_from(b)),
-                        (Value::Uint64(a), Value::Euint32(b)) => Value::Euint32((a as u32) $op_token FheUint32::cast_from(b)),
-                        (Value::Uint64(a), Value::Euint64(b)) => Value::Euint64(a $op_token b),
-                        (Value::Uint64(a), Value::Euint128(b)) => Value::Euint128((a as u128) $op_token FheUint128::cast_from(b)),
+                        (Value::Uint64(a), Value::Euint8(b)) => Value::Euint8(FheUint8::encrypt_trivial(a) $op_token b),
+                        (Value::Uint64(a), Value::Euint16(b)) => Value::Euint16(FheUint16::encrypt_trivial(a) $op_token b),
+                        (Value::Uint64(a), Value::Euint32(b)) => Value::Euint32(FheUint32::encrypt_trivial(a) $op_token b),
+                        (Value::Uint64(a), Value::Euint64(b)) => Value::Euint64(FheUint64::encrypt_trivial(a) $op_token b),
+                        (Value::Uint64(a), Value::Euint128(b)) => Value::Euint128(FheUint128::encrypt_trivial(a) $op_token b),
 
                         (Value::Uint128(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Uint128(a), Value::Euint8(b)) => Value::Euint8((a as u8) $op_token FheUint8::cast_from(b)),
-                        (Value::Uint128(a), Value::Euint16(b)) => Value::Euint16((a as u16) $op_token FheUint16::cast_from(b)),
-                        (Value::Uint128(a), Value::Euint32(b)) => Value::Euint32((a as u32) $op_token FheUint32::cast_from(b)),
-                        (Value::Uint128(a), Value::Euint64(b)) => Value::Euint64((a as u64) $op_token FheUint64::cast_from(b)),
-                        (Value::Uint128(a), Value::Euint128(b)) => Value::Euint128(a $op_token b),
+                        (Value::Uint128(a), Value::Euint8(b)) => Value::Euint8(FheUint8::encrypt_trivial(a) $op_token b),
+                        (Value::Uint128(a), Value::Euint16(b)) => Value::Euint16(FheUint16::encrypt_trivial(a) $op_token b),
+                        (Value::Uint128(a), Value::Euint32(b)) => Value::Euint32(FheUint32::encrypt_trivial(a) $op_token b),
+                        (Value::Uint128(a), Value::Euint64(b)) => Value::Euint64(FheUint64::encrypt_trivial(a) $op_token b),
+                        (Value::Uint128(a), Value::Euint128(b)) => Value::Euint128(FheUint128::encrypt_trivial(a) $op_token b),
 
                         // Encrypted, Plaintext
                         (Value::Ebool(_a), Value::Bool(_b)) => unimplemented!(),
@@ -194,7 +194,10 @@ binary_op! {
     mul_op, mul_method, *;
     and_op, and_method, &;
     or_op, or_method, |;
-    xor_op, xor_method, ^
+    xor_op, xor_method, ^;
+    rem_op, rem_method, %;
+    shr_op, shr_method, >>;
+    shl_op, shl_method, <<
 }
 
 impl Value {
@@ -385,197 +388,6 @@ impl Value {
             (Value::Euint128(a), Value::Euint128(b)) => Value::Euint128(a / b),
         }
     }
-}
-
-macro_rules! binary_shift_op {
-    ($($op:ident, $op_method:ident, $op_token:tt, $op_token_alt:tt);*) => {
-        impl Value {
-            $(
-                pub fn $op(self, other: Self) -> Self {
-                    match (self, other) {
-                        // Plaintext, Plaintext
-                        (Value::Bool(_a), Value::Bool(_b)) => unimplemented!(),
-                        (Value::Bool(a), Value::Uint8(b)) => Value::Uint8((a as u8) $op_token b),
-                        (Value::Bool(a), Value::Uint16(b)) => Value::Uint16((a as u16) $op_token b),
-                        (Value::Bool(a), Value::Uint32(b)) => Value::Uint32((a as u32) $op_token b),
-                        (Value::Bool(a), Value::Uint64(b)) => Value::Uint64((a as u64) $op_token b),
-                        (Value::Bool(a), Value::Uint128(b)) => Value::Uint128((a as u128) $op_token b),
-
-                        (Value::Uint8(a), Value::Bool(b)) => Value::Uint8(a $op_token (b as u8)),
-                        (Value::Uint8(a), Value::Uint8(b)) => Value::Uint8(a $op_token b),
-                        (Value::Uint8(a), Value::Uint16(b)) => Value::Uint16((a as u16) $op_token b),
-                        (Value::Uint8(a), Value::Uint32(b)) => Value::Uint32((a as u32) $op_token b),
-                        (Value::Uint8(a), Value::Uint64(b)) => Value::Uint64((a as u64) $op_token b),
-                        (Value::Uint8(a), Value::Uint128(b)) => Value::Uint128((a as u128) $op_token b),
-
-                        (Value::Uint16(_a), Value::Bool(_b)) => unimplemented!(),
-                        (Value::Uint16(a), Value::Uint8(b)) => Value::Uint16(a $op_token (b as u16)),
-                        (Value::Uint16(a), Value::Uint16(b)) => Value::Uint16(a $op_token b),
-                        (Value::Uint16(a), Value::Uint32(b)) => Value::Uint32((a as u32) $op_token b),
-                        (Value::Uint16(a), Value::Uint64(b)) => Value::Uint64((a as u64) $op_token b),
-                        (Value::Uint16(a), Value::Uint128(b)) => Value::Uint128((a as u128) $op_token b),
-
-                        (Value::Uint32(_a), Value::Bool(_b)) => unimplemented!(),
-                        (Value::Uint32(a), Value::Uint8(b)) => Value::Uint32(a $op_token (b as u32)),
-                        (Value::Uint32(a), Value::Uint16(b)) => Value::Uint32(a $op_token (b as u32)),
-                        (Value::Uint32(a), Value::Uint32(b)) => Value::Uint32(a $op_token b),
-                        (Value::Uint32(a), Value::Uint64(b)) => Value::Uint64((a as u64) $op_token b),
-                        (Value::Uint32(a), Value::Uint128(b)) => Value::Uint128((a as u128) $op_token b),
-
-                        (Value::Uint64(_a), Value::Bool(_b)) => unimplemented!(),
-                        (Value::Uint64(a), Value::Uint8(b)) => Value::Uint64(a $op_token (b as u64)),
-                        (Value::Uint64(a), Value::Uint16(b)) => Value::Uint64(a $op_token (b as u64)),
-                        (Value::Uint64(a), Value::Uint32(b)) => Value::Uint64(a $op_token (b as u64)),
-                        (Value::Uint64(a), Value::Uint64(b)) => Value::Uint64(a $op_token b),
-                        (Value::Uint64(a), Value::Uint128(b)) => Value::Uint128((a as u128) $op_token b),
-
-                        (Value::Uint128(_a), Value::Bool(_b)) => unimplemented!(),
-                        (Value::Uint128(a), Value::Uint8(b)) => Value::Uint128(a $op_token (b as u128)),
-                        (Value::Uint128(a), Value::Uint16(b)) => Value::Uint128(a $op_token (b as u128)),
-                        (Value::Uint128(a), Value::Uint32(b)) => Value::Uint128(a $op_token (b as u128)),
-                        (Value::Uint128(a), Value::Uint64(b)) => Value::Uint128(a $op_token (b as u128)),
-                        (Value::Uint128(a), Value::Uint128(b)) => Value::Uint128(a $op_token b),
-
-                        // Plaintext, Encrypted (change this)
-
-                        (Value::Bool(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Bool(_a), Value::Euint8(_b)) => unimplemented!(),
-                        (Value::Bool(_a), Value::Euint16(_b)) => unimplemented!(),
-                        (Value::Bool(_a), Value::Euint32(_b)) => unimplemented!(),
-                        (Value::Bool(_a), Value::Euint64(_b)) => unimplemented!(),
-                        (Value::Bool(_a), Value::Euint128(_b)) => unimplemented!(),
-
-                        (Value::Uint8(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Uint8(a), Value::Euint8(b)) => Value::Euint8(b $op_token_alt a),
-                        (Value::Uint8(a), Value::Euint16(b)) => Value::Euint16(b $op_token_alt (a as u16)),
-                        (Value::Uint8(a), Value::Euint32(b)) => Value::Euint32(b $op_token_alt (a as u32)),
-                        (Value::Uint8(a), Value::Euint64(b)) => Value::Euint64(b $op_token_alt (a as u64)),
-                        (Value::Uint8(a), Value::Euint128(b)) => Value::Euint128(b $op_token_alt (a as u128)),
-
-                        (Value::Uint16(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Uint16(a), Value::Euint8(b)) => Value::Euint8(FheUint8::cast_from(b) $op_token_alt a),
-                        (Value::Uint16(a), Value::Euint16(b)) => Value::Euint16(b $op_token_alt a),
-                        (Value::Uint16(a), Value::Euint32(b)) => Value::Euint32(FheUint32::cast_from(b) $op_token_alt (a as u32)),
-                        (Value::Uint16(a), Value::Euint64(b)) => Value::Euint64(FheUint64::cast_from(b) $op_token_alt (a as u64)),
-                        (Value::Uint16(a), Value::Euint128(b)) => Value::Euint128(FheUint128::cast_from(b) $op_token_alt (a as u128)),
-
-                        (Value::Uint32(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Uint32(a), Value::Euint8(b)) => Value::Euint8(FheUint8::cast_from(b) $op_token_alt a),
-                        (Value::Uint32(a), Value::Euint16(b)) => Value::Euint16(FheUint16::cast_from(b) $op_token_alt a),
-                        (Value::Uint32(a), Value::Euint32(b)) => Value::Euint32(b $op_token_alt a),
-                        (Value::Uint32(a), Value::Euint64(b)) => Value::Euint64(FheUint64::cast_from(b) $op_token_alt (a as u64)),
-                        (Value::Uint32(a), Value::Euint128(b)) => Value::Euint128(FheUint128::cast_from(b) $op_token_alt (a as u128)),
-
-                        (Value::Uint64(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Uint64(a), Value::Euint8(b)) => Value::Euint8(FheUint8::cast_from(b) $op_token_alt a),
-                        (Value::Uint64(a), Value::Euint16(b)) => Value::Euint16(FheUint16::cast_from(b) $op_token_alt a),
-                        (Value::Uint64(a), Value::Euint32(b)) => Value::Euint32(FheUint32::cast_from(b) $op_token_alt a),
-                        (Value::Uint64(a), Value::Euint64(b)) => Value::Euint64(b $op_token_alt a),
-                        (Value::Uint64(a), Value::Euint128(b)) => Value::Euint128(FheUint128::cast_from(b) $op_token_alt (a as u128)),
-
-                        (Value::Uint128(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Uint128(a), Value::Euint8(b)) => Value::Euint8(FheUint8::cast_from(b) $op_token_alt a),
-                        (Value::Uint128(a), Value::Euint16(b)) => Value::Euint16(FheUint16::cast_from(b) $op_token_alt a),
-                        (Value::Uint128(a), Value::Euint32(b)) => Value::Euint32(FheUint32::cast_from(b) $op_token_alt a),
-                        (Value::Uint128(a), Value::Euint64(b)) => Value::Euint64(FheUint64::cast_from(b) $op_token_alt a),
-                        (Value::Uint128(a), Value::Euint128(b)) => Value::Euint128(b $op_token_alt a),
-
-                        // Encrypted, Plaintext
-                        (Value::Ebool(_a), Value::Bool(_b)) => unimplemented!(),
-                        (Value::Euint8(_a), Value::Bool(_b)) => unimplemented!(),
-                        (Value::Euint16(_a), Value::Bool(_b)) => unimplemented!(),
-                        (Value::Euint32(_a), Value::Bool(_b)) => unimplemented!(),
-                        (Value::Euint64(_a), Value::Bool(_b)) => unimplemented!(),
-                        (Value::Euint128(_a), Value::Bool(_b)) => unimplemented!(),
-
-                        (Value::Ebool(_a), Value::Uint8(_b)) => unimplemented!(),
-                        (Value::Euint8(a), Value::Uint8(b)) => Value::Euint8(a $op_token b),
-                        (Value::Euint16(a), Value::Uint8(b)) => Value::Euint8(FheUint8::cast_from(a) $op_token b),
-                        (Value::Euint32(a), Value::Uint8(b)) => Value::Euint8(FheUint8::cast_from(a) $op_token b),
-                        (Value::Euint64(a), Value::Uint8(b)) => Value::Euint8(FheUint8::cast_from(a) $op_token b),
-                        (Value::Euint128(a), Value::Uint8(b)) => Value::Euint8(FheUint8::cast_from(a) $op_token b),
-
-                        (Value::Ebool(_a), Value::Uint16(_b)) => unimplemented!(),
-                        (Value::Euint8(a), Value::Uint16(b)) => Value::Euint16(FheUint16::cast_from(a) $op_token b),
-                        (Value::Euint16(a), Value::Uint16(b)) => Value::Euint16(a $op_token b),
-                        (Value::Euint32(a), Value::Uint16(b)) => Value::Euint16(FheUint16::cast_from(a) $op_token b),
-                        (Value::Euint64(a), Value::Uint16(b)) => Value::Euint16(FheUint16::cast_from(a) $op_token b),
-                        (Value::Euint128(a), Value::Uint16(b)) => Value::Euint16(FheUint16::cast_from(a) $op_token b),
-
-                        (Value::Ebool(_a), Value::Uint32(_b)) => unimplemented!(),
-                        (Value::Euint8(a), Value::Uint32(b)) => Value::Euint32(FheUint32::cast_from(a) $op_token b),
-                        (Value::Euint16(a), Value::Uint32(b)) => Value::Euint32(FheUint32::cast_from(a) $op_token b),
-                        (Value::Euint32(a), Value::Uint32(b)) => Value::Euint32(a $op_token b),
-                        (Value::Euint64(a), Value::Uint32(b)) => Value::Euint32(FheUint32::cast_from(a) $op_token b),
-                        (Value::Euint128(a), Value::Uint32(b)) => Value::Euint32(FheUint32::cast_from(a) $op_token b),
-
-                        (Value::Ebool(_a), Value::Uint64(_b)) => unimplemented!(),
-                        (Value::Euint8(a), Value::Uint64(b)) => Value::Euint64(FheUint64::cast_from(a) $op_token b),
-                        (Value::Euint16(a), Value::Uint64(b)) => Value::Euint64(FheUint64::cast_from(a) $op_token b),
-                        (Value::Euint32(a), Value::Uint64(b)) => Value::Euint64(FheUint64::cast_from(a) $op_token b),
-                        (Value::Euint64(a), Value::Uint64(b)) => Value::Euint64(a $op_token b),
-                        (Value::Euint128(a), Value::Uint64(b)) => Value::Euint64(FheUint64::cast_from(a) $op_token b),
-
-                        (Value::Ebool(_a), Value::Uint128(_b)) => unimplemented!(),
-                        (Value::Euint8(a), Value::Uint128(b)) => Value::Euint128(FheUint128::cast_from(a) $op_token b),
-                        (Value::Euint16(a), Value::Uint128(b)) => Value::Euint128(FheUint128::cast_from(a) $op_token b),
-                        (Value::Euint32(a), Value::Uint128(b)) => Value::Euint128(FheUint128::cast_from(a) $op_token b),
-                        (Value::Euint64(a), Value::Uint128(b)) => Value::Euint128(FheUint128::cast_from(a) $op_token b),
-                        (Value::Euint128(a), Value::Uint128(b)) => Value::Euint128(a $op_token b),
-
-                        // Encrypted, Encrypted
-                        (Value::Ebool(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Ebool(_a), Value::Euint8(_b)) => unimplemented!(),
-                        (Value::Ebool(_a), Value::Euint16(_b)) => unimplemented!(),
-                        (Value::Ebool(_a), Value::Euint32(_b)) => unimplemented!(),
-                        (Value::Ebool(_a), Value::Euint64(_b)) => unimplemented!(),
-                        (Value::Ebool(_a), Value::Euint128(_b)) => unimplemented!(),
-
-                        (Value::Euint8(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Euint8(a), Value::Euint8(b)) => Value::Euint8(a $op_token b),
-                        (Value::Euint8(a), Value::Euint16(b)) => Value::Euint16(FheUint16::cast_from(a) $op_token b),
-                        (Value::Euint8(a), Value::Euint32(b)) => Value::Euint32(FheUint32::cast_from(a) $op_token b),
-                        (Value::Euint8(a), Value::Euint64(b)) => Value::Euint64(FheUint64::cast_from(a) $op_token b),
-                        (Value::Euint8(a), Value::Euint128(b)) => Value::Euint128(FheUint128::cast_from(a) $op_token b),
-
-                        (Value::Euint16(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Euint16(a), Value::Euint8(b)) => Value::Euint16(a $op_token FheUint16::cast_from(b)),
-                        (Value::Euint16(a), Value::Euint16(b)) => Value::Euint16(a $op_token b),
-                        (Value::Euint16(a), Value::Euint32(b)) => Value::Euint32(FheUint32::cast_from(a) $op_token b),
-                        (Value::Euint16(a), Value::Euint64(b)) => Value::Euint64(FheUint64::cast_from(a) $op_token b),
-                        (Value::Euint16(a), Value::Euint128(b)) => Value::Euint128(FheUint128::cast_from(a) $op_token b),
-
-                        (Value::Euint32(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Euint32(a), Value::Euint8(b)) => Value::Euint32(a $op_token FheUint32::cast_from(b)),
-                        (Value::Euint32(a), Value::Euint16(b)) => Value::Euint32(a $op_token FheUint32::cast_from(b)),
-                        (Value::Euint32(a), Value::Euint32(b)) => Value::Euint32(a $op_token b),
-                        (Value::Euint32(a), Value::Euint64(b)) => Value::Euint64(FheUint64::cast_from(a) $op_token b),
-                        (Value::Euint32(a), Value::Euint128(b)) => Value::Euint128(FheUint128::cast_from(a) $op_token b),
-
-                        (Value::Euint64(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Euint64(a), Value::Euint8(b)) => Value::Euint64(a $op_token FheUint64::cast_from(b)),
-                        (Value::Euint64(a), Value::Euint16(b)) => Value::Euint64(a $op_token FheUint64::cast_from(b)),
-                        (Value::Euint64(a), Value::Euint32(b)) => Value::Euint64(a $op_token FheUint64::cast_from(b)),
-                        (Value::Euint64(a), Value::Euint64(b)) => Value::Euint64(a $op_token b),
-                        (Value::Euint64(a), Value::Euint128(b)) => Value::Euint128(FheUint128::cast_from(a) $op_token b),
-
-                        (Value::Euint128(_a), Value::Ebool(_b)) => unimplemented!(),
-                        (Value::Euint128(a), Value::Euint8(b)) => Value::Euint128(a $op_token FheUint128::cast_from(b)),
-                        (Value::Euint128(a), Value::Euint16(b)) => Value::Euint128(a $op_token FheUint128::cast_from(b)),
-                        (Value::Euint128(a), Value::Euint32(b)) => Value::Euint128(a $op_token FheUint128::cast_from(b)),
-                        (Value::Euint128(a), Value::Euint64(b)) => Value::Euint128(a $op_token FheUint128::cast_from(b)),
-                        (Value::Euint128(a), Value::Euint128(b)) => Value::Euint128(a $op_token b),
-
-                    }
-                }
-            )*
-        }
-    };
-}
-
-binary_shift_op! {
-    shr_op, shr_method, >>, <<;
-    shl_op, shl_method, <<, <<
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -875,6 +687,27 @@ impl Sub<u8> for Value {
             Value::Uint32(val) => Value::Uint32(val - other as u32),
             Value::Uint64(val) => Value::Uint64(val - other as u64),
             Value::Uint128(val) => Value::Uint128(val - other as u128),
+        }
+    }
+}
+
+impl Rem<u8> for Value {
+    type Output = Self;
+
+    fn rem(self, other: u8) -> Self {
+        match self {
+            Value::Ebool(_val) => unimplemented!(),
+            Value::Euint8(val) => Value::Euint8(val % other),
+            Value::Euint16(val) => Value::Euint16(val % other as u16),
+            Value::Euint32(val) => Value::Euint32(val % other as u32),
+            Value::Euint64(val) => Value::Euint64(val % other as u64),
+            Value::Euint128(val) => Value::Euint128(val % other as u128),
+            Value::Bool(_val) => unimplemented!(),
+            Value::Uint8(val) => Value::Uint8(val % other),
+            Value::Uint16(val) => Value::Uint16(val % other as u16),
+            Value::Uint32(val) => Value::Uint32(val % other as u32),
+            Value::Uint64(val) => Value::Uint64(val % other as u64),
+            Value::Uint128(val) => Value::Uint128(val % other as u128),
         }
     }
 }

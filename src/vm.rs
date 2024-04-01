@@ -14,6 +14,7 @@ pub enum OpCode {
     Mul,
     Div,
     Neg,
+    Rem, // Remainder
 
     // bitwise operations
     And,
@@ -118,6 +119,7 @@ impl std::fmt::Debug for OpCode {
             OpCode::Load(address) => write!(f, "Load({})", address),
             OpCode::Store(address) => write!(f, "Store({})", address),
             OpCode::Swap => write!(f, "Swap"),
+            OpCode::Rem => write!(f, "Rem"),
         }
     }
 }
@@ -176,6 +178,7 @@ impl OpCode {
             }
             OpCode::Swap => vec![27],
             OpCode::Neg => vec![28],
+            OpCode::Rem => vec![29],
         }
     }
 
@@ -228,7 +231,7 @@ impl OpCode {
             }
             27 => (OpCode::Swap, 1),
             28 => (OpCode::Neg, 1),
-            // Handle other opcodes...
+            29 => (OpCode::Rem, 1),
             _ => unimplemented!(),
         }
     }
@@ -436,6 +439,11 @@ impl VM {
                 OpCode::Neg => {
                     let a = self.pop();
                     self.push(a.neg());
+                }
+                OpCode::Rem => {
+                    let b = self.pop();
+                    let a = self.pop();
+                    self.push(a.rem_op(b));
                 }
             }
             self.ip += 1; // Move to the next instruction unless jumped

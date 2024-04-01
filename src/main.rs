@@ -1,7 +1,7 @@
-use zvm::value::Value;
-use zvm::vm::{OpCode, VM};
 use tfhe::prelude::*;
 use tfhe::{generate_keys, set_server_key, ConfigBuilder, FheUint16, FheUint8};
+use zvm::value::Value;
+use zvm::vm::{OpCode, VM};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Basic configuration to use homomorphic integers
