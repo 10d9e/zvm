@@ -1129,6 +1129,8 @@ mod tests {
             OpCode::Swap,
         ];
 
+        println!("Original program: {:?}", original_program.clone());
+
         // Serialize the program into bytes
         let serialized = serialize(&original_program);
         //println!("Serialized program: {:?}", hex::encode(serialized.clone()));

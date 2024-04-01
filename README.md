@@ -1,2 +1,2 @@
-# fvm
-A simple stackmachine for executing Fully Homomorphic operations
+# zvm
+A virtual machine for building and executing Fully Homomorphic programs
