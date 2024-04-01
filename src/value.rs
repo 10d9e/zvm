@@ -189,16 +189,16 @@ macro_rules! binary_op {
 }
 
 binary_op! {
-    add, add_method, +;
-    sub, sub_method, -;
-    mul, mul_method, *;
-    and, and_method, &;
-    or, or_method, |;
-    xor, xor_method, ^
+    add_op, add_method, +;
+    sub_op, sub_method, -;
+    mul_op, mul_method, *;
+    and_op, and_method, &;
+    or_op, or_method, |;
+    xor_op, xor_method, ^
 }
 
 impl Value {
-    pub fn div(self, other: Self) -> Self {
+    pub fn div_op(self, other: Self) -> Self {
         match (self, other) {
             // Plaintext, Plaintext
             (Value::Bool(_a), Value::Bool(_b)) => unimplemented!(),
@@ -574,8 +574,8 @@ macro_rules! binary_shift_op {
 }
 
 binary_shift_op! {
-    shr, shr_method, >>, <<;
-    shl, shl_method, <<, <<
+    shr_op, shr_method, >>, <<;
+    shl_op, shl_method, <<, <<
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -809,7 +809,7 @@ impl Value {
         match bytes[0] {
             0 => {
                 let val: FheBool = bincode::deserialize(&bytes[1..]).unwrap();
-                (Value::Ebool(val), 1)
+                (Value::Ebool(val), bytes.len())
             }
             1 => {
                 let val: FheUint8 = bincode::deserialize(&bytes[1..]).unwrap();

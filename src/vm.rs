@@ -51,6 +51,77 @@ pub enum OpCode {
     Swap,
 }
 
+impl std::fmt::Debug for OpCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OpCode::Add => write!(f, "Add"),
+            OpCode::Sub => write!(f, "Sub"),
+            OpCode::Mul => write!(f, "Mul"),
+            OpCode::Div => write!(f, "Div"),
+            OpCode::Neg => write!(f, "Neg"),
+            OpCode::And => write!(f, "And"),
+            OpCode::Or => write!(f, "Or"),
+            OpCode::Xor => write!(f, "Xor"),
+            OpCode::ShiftRight => write!(f, "ShiftRight"),
+            OpCode::ShiftLeft => write!(f, "ShiftLeft"),
+            OpCode::Eq => write!(f, "Eq"),
+            OpCode::Neq => write!(f, "Neq"),
+            OpCode::Lt => write!(f, "Lt"),
+            OpCode::Lte => write!(f, "Lte"),
+            OpCode::Gt => write!(f, "Gt"),
+            OpCode::Gte => write!(f, "Gte"),
+            OpCode::Min => write!(f, "Min"),
+            OpCode::Max => write!(f, "Max"),
+            OpCode::Mux => write!(f, "Mux"),
+            OpCode::Push(value) => match value {
+                Value::Ebool(_) => {
+                    write!(f, "Push(Ebool)")
+                }
+                Value::Euint8(_) => {
+                    write!(f, "Push(Euint8)")
+                }
+                Value::Euint16(_) => {
+                    write!(f, "Push(Euint16)")
+                }
+                Value::Euint32(_) => {
+                    write!(f, "Push(Euint32)")
+                }
+                Value::Euint64(_) => {
+                    write!(f, "Push(Euint64)")
+                }
+                Value::Euint128(_) => {
+                    write!(f, "Push(Euint128)")
+                }
+                Value::Bool(val) => {
+                    write!(f, "Push(Bool: {:?})", val)
+                }
+                Value::Uint8(val) => {
+                    write!(f, "Push(Uint8: {:?})", val)
+                }
+                Value::Uint16(val) => {
+                    write!(f, "Push(Uint16: {:?})", val)
+                }
+                Value::Uint32(val) => {
+                    write!(f, "Push(Uint32: {:?})", val)
+                }
+                Value::Uint64(val) => {
+                    write!(f, "Push(Uint64: {:?})", val)
+                }
+                Value::Uint128(val) => {
+                    write!(f, "Push(Uint128: {:?})", val)
+                }
+            },
+            OpCode::Dup => write!(f, "Dup"),
+            OpCode::NoOp => write!(f, "NoOp"),
+            OpCode::Inc => write!(f, "Inc"),
+            OpCode::Dec => write!(f, "Dec"),
+            OpCode::Load(address) => write!(f, "Load({})", address),
+            OpCode::Store(address) => write!(f, "Store({})", address),
+            OpCode::Swap => write!(f, "Swap"),
+        }
+    }
+}
+
 impl OpCode {
     pub(crate) fn to_bytes(&self) -> Vec<u8> {
         match self {
@@ -230,37 +301,37 @@ impl VM {
                 OpCode::Add => {
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(a.add(b));
+                    self.push(a.add_op(b));
                 }
                 OpCode::Sub => {
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(a.sub(b));
+                    self.push(a.sub_op(b));
                 }
                 OpCode::Mul => {
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(a.mul(b));
+                    self.push(a.mul_op(b));
                 }
                 OpCode::Div => {
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(a.div(b));
+                    self.push(a.div_op(b));
                 }
                 OpCode::And => {
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(a.and(b));
+                    self.push(a.and_op(b));
                 }
                 OpCode::Or => {
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(a.or(b));
+                    self.push(a.or_op(b));
                 }
                 OpCode::Xor => {
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(a.xor(b));
+                    self.push(a.xor_op(b));
                 }
                 OpCode::Eq => {
                     let b = self.pop();
@@ -318,12 +389,12 @@ impl VM {
                 OpCode::ShiftRight => {
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(a.shr(b));
+                    self.push(a.shr_op(b));
                 }
                 OpCode::ShiftLeft => {
                     let b = self.pop();
                     let a = self.pop();
-                    self.push(a.shl(b));
+                    self.push(a.shl_op(b));
                 }
                 OpCode::Dup => {
                     let value = self.stack.last().expect("Stack underflow on Dup");

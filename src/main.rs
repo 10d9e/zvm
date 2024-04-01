@@ -24,6 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         OpCode::Push(Value::Euint16(enc_b)),
         OpCode::Add,
     ];
+    println!("bytecode: {:?}", bytecode);
     vm.execute(&bytecode);
 
     let encrypted_res = vm.pop();
