@@ -69,7 +69,7 @@ mod tests {
     }
 
     #[test]
-    fn test_subtract() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_subtract_ciphertexts() -> Result<(), Box<dyn std::error::Error>> {
         // Basic configuration to use homomorphic integers
         let config = ConfigBuilder::default().build();
 
@@ -1073,6 +1073,54 @@ mod tests {
         let encrypted_res = vm.pop();
         let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 4);
+    }
+
+    #[test]
+    fn test_rem_from_ciphertext_with_plaintext() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+        let a = 6u8;
+        let b = 4u8;
+        let enc_a = FheUint8::try_encrypt(a, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Euint8(enc_a)),
+            OpCode::Push(Value::Uint8(b)),
+            OpCode::Rem,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
+        assert_eq!(clear_res, 2);
+        Ok(())
+    }
+
+    #[test]
+    fn test_rem_from_plaintext_with_ciphertext() -> Result<(), Box<dyn std::error::Error>> {
+        // Basic configuration to use homomorphic integers
+        let config = ConfigBuilder::default().build();
+        // Key generation
+        let (client_key, server_keys) = generate_keys(config);
+        // On the server side:
+        set_server_key(server_keys);
+        let a = 6u8;
+        let b = 4u8;
+        let enc_b = FheUint8::try_encrypt(b, &client_key)?;
+        let mut vm = VM::new();
+        let bytecode = [
+            OpCode::Push(Value::Uint8(a)),
+            OpCode::Push(Value::Euint8(enc_b)),
+            OpCode::Rem,
+        ];
+        vm.execute(&bytecode);
+        let encrypted_res = vm.pop();
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
+        assert_eq!(clear_res, 2);
+        Ok(())
     }
 
     #[test]
