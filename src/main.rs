@@ -1,4 +1,5 @@
-use fvm::vm::{OpCode, Value, VM};
+use fvm::value::Value;
+use fvm::vm::{OpCode, VM};
 use tfhe::prelude::*;
 use tfhe::{generate_keys, set_server_key, ConfigBuilder, FheUint16, FheUint8};
 
@@ -19,14 +20,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut vm = VM::new();
     let bytecode = [
-        OpCode::Push(Value::Uint8(enc_a)),
-        OpCode::Push(Value::Uint16(enc_b)),
+        OpCode::Push(Value::Euint8(enc_a)),
+        OpCode::Push(Value::Euint16(enc_b)),
         OpCode::Add,
     ];
     vm.execute(&bytecode);
 
     let encrypted_res = vm.pop();
-    let clear_res: u16 = encrypted_res.as_int16().unwrap().decrypt(&client_key);
+    let clear_res: u16 = encrypted_res.as_eint16().unwrap().decrypt(&client_key);
     assert_eq!(clear_res, 15);
 
     Ok(())
