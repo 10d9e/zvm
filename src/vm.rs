@@ -35,7 +35,7 @@ pub enum OpCode {
     Mux,
 
     // Jump
-    /* TODO?
+    /* TODO: I mean, can we please figure out a way to do oblivious Jmp and JmpIf?
     Jmp(i32),   // Jump to an instruction index unconditionally
     JmpIf(i32), // Jump if the top of the stack is nonzero (true)
     */
@@ -168,7 +168,6 @@ macro_rules! binary_op {
             $(
                 fn $op(self, other: Self) -> Self {
                     match (self, other) {
-
                         (Value::Bool(_a), Value::Bool(_b)) => unimplemented!(),
                         (Value::Bool(_a), Value::Uint8(_b)) => unimplemented!(),
                         (Value::Bool(_a), Value::Uint16(_b)) => unimplemented!(),
@@ -687,8 +686,8 @@ impl VM {
                     // Ensure memory is large enough to handle address
                     let uaddress: usize = (*address).try_into().unwrap();
                     if self.memory.len() <= uaddress {
-                        let fhe_one: FheUint8 = FheUint8::try_encrypt_trivial(1u8).unwrap();
-                        self.memory.resize(uaddress + 1, Value::Uint8(fhe_one));
+                        let fhe_one = FheBool::try_encrypt_trivial(false).unwrap();
+                        self.memory.resize(uaddress + 1, Value::Bool(fhe_one));
                     }
                     self.memory[uaddress] = value;
                 }
@@ -1515,6 +1514,7 @@ mod tests {
         //assert_eq!(deserialized_program, original_program);
         Ok(())
     }
+
     /*
     #[test]
     fn test_fibonacci() -> Result<(), Box<dyn std::error::Error>> {
