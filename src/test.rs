@@ -34,7 +34,7 @@ mod tests {
         vm.execute(&bytecode);
 
         let encrypted_res = vm.pop();
-        let clear_res: u16 = encrypted_res.as_eint16().unwrap().decrypt(&client_key);
+        let clear_res: u16 = encrypted_res.as_eint16().decrypt(&client_key);
         assert_eq!(clear_res, 25);
 
         Ok(())
@@ -63,7 +63,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 3);
         Ok(())
     }
@@ -93,7 +93,7 @@ mod tests {
         vm.execute(&bytecode);
 
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 15);
 
         Ok(())
@@ -122,7 +122,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 6);
         Ok(())
     }
@@ -150,7 +150,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 3);
         Ok(())
     }
@@ -178,7 +178,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 1);
         Ok(())
     }
@@ -206,7 +206,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 7);
         Ok(())
     }
@@ -234,7 +234,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 6);
         Ok(())
     }
@@ -262,7 +262,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 2);
         Ok(())
     }
@@ -290,7 +290,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 1);
         Ok(())
     }
@@ -318,7 +318,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res = encrypted_res.as_ebool().unwrap().decrypt(&client_key);
+        let clear_res = encrypted_res.as_ebool().decrypt(&client_key);
         assert!(clear_res);
         Ok(())
     }
@@ -346,7 +346,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res = encrypted_res.as_ebool().unwrap().decrypt(&client_key);
+        let clear_res = encrypted_res.as_ebool().decrypt(&client_key);
         assert!(clear_res);
         Ok(())
     }
@@ -373,7 +373,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res = encrypted_res.as_ebool().unwrap().decrypt(&client_key);
+        let clear_res = encrypted_res.as_ebool().decrypt(&client_key);
         assert!(clear_res);
         Ok(())
     }
@@ -401,7 +401,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res = encrypted_res.as_ebool().unwrap().decrypt(&client_key);
+        let clear_res = encrypted_res.as_ebool().decrypt(&client_key);
         assert!(clear_res);
         Ok(())
     }
@@ -429,7 +429,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res = encrypted_res.as_ebool().unwrap().decrypt(&client_key);
+        let clear_res = encrypted_res.as_ebool().decrypt(&client_key);
         assert!(clear_res);
         Ok(())
     }
@@ -457,7 +457,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res = encrypted_res.as_ebool().unwrap().decrypt(&client_key);
+        let clear_res = encrypted_res.as_ebool().decrypt(&client_key);
         assert!(clear_res);
         Ok(())
     }
@@ -485,7 +485,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 4);
         Ok(())
     }
@@ -513,7 +513,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 5);
         Ok(())
     }
@@ -535,7 +535,7 @@ mod tests {
         let bytecode = [OpCode::Push(Value::Euint8(enc_a)), OpCode::Inc];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 5);
         Ok(())
     }
@@ -557,7 +557,7 @@ mod tests {
         let bytecode = [OpCode::Push(Value::Euint8(enc_a)), OpCode::Dec];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 3);
         Ok(())
     }
@@ -583,7 +583,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 5);
         Ok(())
     }
@@ -614,7 +614,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 6);
         Ok(())
     }
@@ -642,7 +642,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 5);
         Ok(())
     }
@@ -664,7 +664,7 @@ mod tests {
         let bytecode = [OpCode::Push(Value::Euint8(enc_a)), OpCode::Neg];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, -5i8 as u8);
         Ok(())
     }
@@ -695,7 +695,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 6);
         Ok(())
     }
@@ -720,7 +720,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 11);
         Ok(())
     }
@@ -745,7 +745,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 2);
         Ok(())
     }
@@ -770,7 +770,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 24);
         Ok(())
     }
@@ -795,7 +795,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 2);
         Ok(())
     }
@@ -820,7 +820,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 1);
         Ok(())
     }
@@ -845,7 +845,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 1);
         Ok(())
     }
@@ -870,7 +870,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 7);
         Ok(())
     }
@@ -895,7 +895,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 7);
         Ok(())
     }
@@ -920,7 +920,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 6);
         Ok(())
     }
@@ -945,7 +945,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 6);
         Ok(())
     }
@@ -970,7 +970,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 11);
         Ok(())
     }
@@ -995,7 +995,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 2);
         Ok(())
     }
@@ -1020,7 +1020,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 24);
         Ok(())
     }
@@ -1046,7 +1046,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 2);
     }
 
@@ -1071,7 +1071,7 @@ mod tests {
         ];
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_eint8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
         assert_eq!(clear_res, 4);
     }
 
@@ -1230,7 +1230,7 @@ mod tests {
         let mut vm = VM::new();
         vm.execute(&bytecode);
         let encrypted_res = vm.pop();
-        let clear_res: u8 = encrypted_res.as_int8().unwrap().decrypt(&client_key);
+        let clear_res: u8 = encrypted_res.as_int8().decrypt(&client_key);
         assert_eq!(clear_res, 55);
         Ok(())
     }

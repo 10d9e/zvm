@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     vm.execute(&bytecode);
 
     let encrypted_res = vm.pop();
-    let clear_res: u16 = encrypted_res.as_eint16().unwrap().decrypt(&client_key);
+    let clear_res: u16 = encrypted_res.as_eint16().decrypt(&client_key);
     assert_eq!(clear_res, 15);
 
     Ok(())

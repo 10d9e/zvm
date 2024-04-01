@@ -443,9 +443,9 @@ impl VM {
     }
 
     fn mux(&self, a: Value, b: Value, c: Value) -> Value {
-        let a = a.as_ebool().unwrap();
-        let b = b.as_eint8().unwrap();
-        let c = c.as_eint8().unwrap();
+        let a = a.as_ebool();
+        let b = b.as_eint8();
+        let c = c.as_eint8();
         Value::Euint8(a.if_then_else(b, c))
     }
 }

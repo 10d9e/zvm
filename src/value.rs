@@ -696,45 +696,45 @@ impl FheOrd<Value> for Value {
 }
 
 impl Value {
-    pub fn as_ebool(&self) -> Option<FheBool> {
+    pub fn as_ebool(&self) -> &FheBool {
         match self {
-            Value::Ebool(value) => Some(value.clone()),
-            _ => None,
+            Value::Ebool(value) => value,
+            _ => unimplemented!(),
         }
     }
 
-    pub fn as_eint8(&self) -> Option<&FheUint8> {
+    pub fn as_eint8(&self) -> &FheUint8 {
         match self {
-            Value::Euint8(value) => Some(value),
-            _ => None,
+            Value::Euint8(value) => value,
+            _ => unimplemented!(),
         }
     }
 
-    pub fn as_eint16(&self) -> Option<&FheUint16> {
+    pub fn as_eint16(&self) -> &FheUint16 {
         match self {
-            Value::Euint16(value) => Some(value),
-            _ => None,
+            Value::Euint16(value) => value,
+            _ => unimplemented!(),
         }
     }
 
-    pub fn as_eint32(&self) -> Option<&FheUint32> {
+    pub fn as_eint32(&self) -> &FheUint32 {
         match self {
-            Value::Euint32(value) => Some(value),
-            _ => None,
+            Value::Euint32(value) => value,
+            _ => unimplemented!(),
         }
     }
 
-    pub fn as_eint64(&self) -> Option<&FheUint64> {
+    pub fn as_eint64(&self) -> &FheUint64 {
         match self {
-            Value::Euint64(value) => Some(value),
-            _ => None,
+            Value::Euint64(value) => value,
+            _ => unimplemented!(),
         }
     }
 
-    pub fn as_eint128(&self) -> Option<&FheUint128> {
+    pub fn as_eint128(&self) -> &FheUint128 {
         match self {
-            Value::Euint128(value) => Some(value),
-            _ => None,
+            Value::Euint128(value) => value,
+            _ => unimplemented!(),
         }
     }
 }
