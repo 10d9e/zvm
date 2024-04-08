@@ -1,0 +1,19 @@
+trait Shape {
+    fn area(): int;
+}
+
+contract Circle: Shape {
+    let radius:int = 0;
+
+    constructor() = {
+        radius = 42;
+    };
+
+    constructor(r: int) = {
+        radius = r;
+    };
+
+    fn area(): int = {
+        return 3.14 * radius * radius;
+    };
+}

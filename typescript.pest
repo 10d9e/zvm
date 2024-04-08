@@ -1,0 +1,69 @@
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
+COMMENT = _{ "//" ~ (!"\n" ~ ANY)* | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+
+identifier = @{ (ASCII_ALPHANUMERIC | "_")+ }
+type = @{ "string" | "number" | "boolean" | "any" | "void" | identifier }
+access_modifier = { "public" | "private" | "protected" }
+variable_declaration = { "let" | "const" | "var" }
+function_keyword = { "function" }
+abstract_keyword = { "abstract" }
+class_keyword = { "class" }
+interface_keyword = { "interface" }
+extends_keyword = { "extends" }
+implements_keyword = { "implements" }
+
+// Parameters and Return Type, adjusted for clarity
+parameter = { identifier ~ ":" ~ type }
+parameters = _{ "(" ~ (parameter ~ ("," ~ parameter)*)? ~ ")" }
+return_type = { ":" ~ type }
+
+// Define function_declaration to handle global function declarations
+function_declaration = _{
+    function_keyword ~ identifier ~ parameters? ~ return_type? ~ "{" ~ "}"
+}
+
+// Method Declarations, distinguishing between abstract and regular methods
+abstract_method_declaration = _{
+    access_modifier ~ "abstract" ~ identifier ~ parameters ~ return_type
+}
+
+regular_method_declaration = _{
+    access_modifier? ~ identifier ~ parameters? ~ return_type? ~ "{" ~ "}"
+}
+
+// Class Member Declarations, adjusted to include abstract methods
+class_member_declaration = _{
+    (abstract_method_declaration | regular_method_declaration) ~ ";"
+}
+
+// Class Body (Containing Members)
+class_body = _{
+    "{" ~ class_member_declaration* ~ "}"
+}
+
+// Class Declaration (Including Abstract Classes)
+class_declaration = _{
+    abstract_keyword? ~ class_keyword ~ identifier ~ 
+    extends_keyword? ~ identifier? ~
+    implements_keyword? ~ (identifier ~ ("," ~ identifier)*)? ~
+    class_body
+}
+
+// Interface Declaration (Including Method Signatures and Properties)
+interface_declaration = _{
+    interface_keyword ~ identifier ~ 
+    extends_keyword? ~ identifier? ~ "{" ~ 
+    (identifier ~ ":" ~ type | identifier ~ parameters ~ return_type? ~ ";")* ~ 
+    "}"
+}
+
+// Main Grammar Rules (Including Global Declarations)
+declaration = _{
+    variable_declaration ~ identifier ~ ":" ~ type ~ ";" |
+    function_declaration |
+    class_declaration |
+    interface_declaration
+}
+
+// Program Entry Point
+program = { SOI ~ (declaration | COMMENT)* ~ EOI }

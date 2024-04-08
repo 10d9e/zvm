@@ -1,0 +1,34 @@
+abstract class Animal {
+  public abstract makeSound(): void;
+
+  protected walk(): void {
+    console.log("Walking...");
+  }
+}
+
+class Dog extends Animal {
+  public makeSound(): void {
+    console.log("Bark");
+  }
+
+  public doTrick(): void {
+    console.log("Roll over");
+  }
+}
+
+interface Printable {
+  print(): void;
+}
+
+class Report implements Printable {
+  public print(): void {
+    console.log("Report printing...");
+  }
+}
+
+let dog = new Dog();
+dog.makeSound();
+dog.doTrick();
+
+let report = new Report();
+report.print();

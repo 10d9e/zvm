@@ -1,0 +1,44 @@
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
+COMMENT = _{ "//" ~ (!"\n" ~ ANY)* ~ "\n" }
+
+program = _{ SOI ~ (class_declaration | trait_declaration)* ~ EOI }
+
+class_declaration = { access_modifier? ~ "contract" ~ identifier ~ inheritance? ~ "{" ~ (class_member)* ~ "}" }
+inheritance = { ":" ~ identifier }
+
+trait_declaration = { "trait" ~ identifier ~ "{" ~ (trait_member)* ~ "}" }
+trait_member = _{
+    "fn" ~ identifier ~ "()" ~ ":" ~ type |
+    "fn" ~ identifier ~ "(" ~ parameter_list? ~ ")" ~ ":" ~ type
+}
+
+abstract_method_declaration = { "abstract" ~ "fn" ~ identifier ~ "(" ~ parameter_list? ~ ")" ~ ":" ~ type }
+
+class_member = _{ 
+    abstract_method_declaration | 
+    access_modifier? ~ ("static" ~ (method_declaration | property_declaration) | constructor_declaration | method_declaration | property_declaration) 
+}
+access_modifier = { "public" | "private" | "protected" }
+constructor_declaration = { "constructor" ~ "(" ~ parameter_list? ~ ")" ~ "=" ~ block }
+method_declaration = { "fn" ~ identifier ~ "(" ~ parameter_list? ~ ")" ~ ":" ~ type ~ "=" ~ block }
+property_declaration = { "let" ~ identifier ~ ":" ~ type ~ "=" ~ expression }
+parameter_list = _{ parameter ~ ("," ~ parameter)* }
+parameter = { identifier ~ ":" ~ type }
+block = _{ "{" ~ (declaration)* ~ "}" }
+
+declaration = _{ variable_declaration | expression }
+variable_declaration = { "let" ~ identifier ~ ":" ~ type ~ "=" ~ expression }
+
+expression = _{ term ~ (("+" | "-") ~ term)* }
+term = _{ factor ~ (("*" | "/") ~ factor)* }
+factor = _{ integer_literal | "(" ~ expression ~ ")" | identifier }
+
+// Define rules for arithmetic operators
+add = { "+" }
+subtract = { "-" }
+multiply = { "*" }
+divide = { "/" }
+
+integer_literal = @{ "-"? ~ ASCII_DIGIT+ }
+identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHA | ASCII_DIGIT)* }
+type = _{ "int8" | "uint8" | "int16" | "uint16" | "int32" | "uint32" | "int64" | "uint64" | "int128" | "uint128" | "int256" | "uint256" | "bool" | identifier }
