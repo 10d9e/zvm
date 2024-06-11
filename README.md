@@ -101,12 +101,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut vm = VM::new();    
     vm.execute(&compiled_opcodes);
 
-    if let Some(result) = vm.stack.last() {
-        println!("Result of operation: {:?}", result);
-    } else {
-        println!("Error: Stack is empty.");
-    }
+    // server sends the results
     let encrypted_res = vm.stack.last();
+    // client decrypts
     let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
     println!("results: {}", clear_res);
     Ok(())
