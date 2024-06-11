@@ -79,24 +79,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Key generation
     let (client_key, server_keys) = generate_keys(config);
-    // On the server side:
+
+    let code = "
+        let a = 10;
+        let b = 20;
+        let a = a + b;
+        if (a > 25) {
+            let a = a - 5;
+        }
+    ";
+    // parse the abstract syntax tree
+    let ast = parse(code);
+    // compile into homomorphic bytecode
+    let compiled_opcodes = compile(&ast);
+
+    // -- server -- 
+    // On the server side set the server key and send over the compiled bytecode
     set_server_key(server_keys);
 
-    let a = 5u8;
-    let b = 3u8;
+    // execute the bytecode
+    let mut vm = VM::new();    
+    vm.execute(&compiled_opcodes);
 
-    let enc_a = FheUint8::try_encrypt(a, &client_key)?;
-    let enc_b = FheUint8::try_encrypt(b, &client_key)?;
-    let mut vm = VM::new();
-    let bytecode = [
-        OpCode::Push(Value::Euint8(enc_a)),
-        OpCode::Push(Value::Euint8(enc_b)),
-        OpCode::Xor,
-    ];
-    vm.execute(&bytecode);
-    let encrypted_res = vm.pop();
+    if let Some(result) = vm.stack.last() {
+        println!("Result of operation: {:?}", result);
+    } else {
+        println!("Error: Stack is empty.");
+    }
+    let encrypted_res = vm.stack.last();
     let clear_res: u8 = encrypted_res.as_eint8().decrypt(&client_key);
-    assert_eq!(clear_res, 6);
+    println!("results: {}", clear_res);
     Ok(())
 }
 ```

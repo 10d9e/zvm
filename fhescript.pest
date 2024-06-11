@@ -1,0 +1,15 @@
+// stackscript.pest
+
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
+COMMENT = _{ "//" ~ (!"\n" ~ ANY)* ~ "\n" }
+
+program = _{ SOI ~ statement* ~ EOI }
+statement = _{ variable_assignment | if_statement | arithmetic_expression }
+variable_assignment = { "let" ~ identifier ~ "=" ~ arithmetic_expression ~ ";" }
+if_statement = { "if" ~ "(" ~ boolean_expression ~ ")" ~ "{" ~ statement* ~ "}" }
+arithmetic_expression = _{ term ~ ( ("+" | "-") ~ term )* }
+term = _{ factor ~ ( ("*" | "/") ~ factor )* }
+factor = _{ number | identifier | "(" ~ arithmetic_expression ~ ")" }
+boolean_expression = _{ arithmetic_expression ~ ("==" | ">" | "<" | "!=" | ">=" | "<=") ~ arithmetic_expression }
+number = @{ ASCII_DIGIT+ }
+identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHA | ASCII_DIGIT)* }
