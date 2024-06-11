@@ -37,7 +37,7 @@ pub enum OpCode {
     Mux,
 
     // Jump
-    /* TODO: I mean, can we please figure out a way to do oblivious Jmp and JmpIf?
+    /* TODO: not currently possible to do in a secure way
     Jmp(i32),   // Jump to an instruction index unconditionally
     JmpIf(i32), // Jump if the top of the stack is nonzero (true)
     */
